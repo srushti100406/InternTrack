@@ -54,38 +54,81 @@ input,select,textarea{background:var(--card);border:1px solid var(--line);border
 aside.mini{width:68px}aside.mini .nav,aside.mini .logo{font-size:0;justify-content:center}aside.mini .prof>div:last-child{display:none}main.mini{margin-left:68px}.cb{display:grid}
 @media(max-width:820px){.hero,.split{grid-template-columns:minmax(0,1fr)}.hero h1{font-size:32px}.sr{display:none}.fgrid.three{grid-template-columns:1fr}.pf{flex-direction:column;gap:6px}.cb{display:none}main.mini{margin-left:0}aside.mini{width:244px}aside.mini .nav{font-size:14px}}
 @media(max-width:560px){.pn .pw>.row a{display:none}.pn .pw{padding:0 12px}.grid4{grid-template-columns:1fr}}
-</style></head><body><div id="app"></div><div id="toast"></div>
+.prog{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;background:linear-gradient(90deg,transparent,var(--blue),transparent) no-repeat;background-size:40% 100%;animation:prog 1s linear infinite}@keyframes prog{from{background-position:-40% 0}to{background-position:140% 0}}
+.t.e{background:var(--red);color:#fff}code{font-size:12px;background:var(--bg);padding:1px 5px;border-radius:5px}
+.grid5{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:20px 0}
+.bars{display:grid;gap:10px}.bar{display:grid;grid-template-columns:96px minmax(0,1fr) 32px;gap:10px;align-items:center}.bar i{display:block;height:10px;border-radius:99px}.bar b{text-align:right}
+</style></head><body><div id="app"></div><div id="toast" role="status" aria-live="polite"></div>
 <script>
-// ---------- service layer (swap mock for AWS: set API_BASE_URL) ----------
-const API_BASE_URL = ""; // e.g. https://xxxx.lambda-url.ap-south-1.on.aws  (placeholder, no real endpoint)
-const day=o=>{const d=new Date();d.setDate(d.getDate()+o);return d.toISOString().slice(0,10)};
-const seed=[
-["Google","Software Engineering Intern","Bengaluru","Hybrid","₹1,00,000/mo",-12,8,"interview","Prepare for system design round",3,"https://careers.google.com/swe-intern"],
-["Microsoft","Frontend Developer Intern","Hyderabad","On-site","₹80,000/mo",-9,5,"assessment","Complete online assessment",2,"https://careers.microsoft.com/fe-intern"],
-["Amazon Web Services","Cloud Engineering Intern","Mumbai","Hybrid","₹70,000/mo",-20,-2,"offer","Accept or decline offer",4,"https://aws.amazon.com/careers/cloud-intern"],
-["Flipkart","Data Analyst Intern","Bengaluru","On-site","₹50,000/mo",-6,12,"applied","Follow up with recruiter",5,""],
-["Razorpay","Frontend Developer Intern","Remote","Remote","₹45,000/mo",null,3,"saved","Submit application before deadline",1,"https://razorpay.com/jobs/fe"],
-["Atlassian","Software Engineering Intern","Remote","Remote","₹90,000/mo",-30,-10,"rejected","",null,""],
-["Zomato","Data Analyst Intern","Gurugram","Hybrid","₹40,000/mo",-14,null,"applied","Check application portal",-1,""],
-["Swiggy","Backend Developer Intern","Bengaluru","On-site","₹55,000/mo",-4,15,"applied","",null,""],
-["Adobe","Cloud Engineering Intern","Noida","Hybrid","₹75,000/mo",-18,-5,"withdrawn","",null,""],
-["Infosys","Software Engineering Intern","Pune","On-site","₹25,000/mo",null,20,"saved","Draft cover letter",6,""],
-["Uber","Data Analyst Intern","Hyderabad","Hybrid","₹85,000/mo",-22,null,"interview","Send thank-you email",2,""],
-["Zoho","Frontend Developer Intern","Chennai","On-site","₹30,000/mo",-3,25,"applied","Wait for assessment link",7,""]
-];
-let db=seed.map((r,i)=>({id:"a"+(i+1),companyName:r[0],role:r[1],location:r[2],workMode:r[3],stipend:r[4],dateApplied:r[5]==null?"":day(r[5]),deadline:r[6]==null?"":day(r[6]),status:r[7],nextAction:r[8],nextActionDate:r[9]==null?"":day(r[9]),nextActionDone:false,jobUrl:r[10],notes:"",createdAt:new Date(Date.now()-(20-i)*864e5).toISOString(),updatedAt:new Date().toISOString()}));
-const wait=ms=>new Promise(r=>setTimeout(r,ms));
-async function http(path,opt){const r=await fetch(API_BASE_URL+path,{headers:{"Content-Type":"application/json"},...opt});if(!r.ok)throw new Error("Request failed ("+r.status+")");return r.status==204?null:r.json()}
+// ---------- configuration ----------
+// Paste the API Gateway *Invoke URL* including the stage, with no trailing slash, e.g.
+//   https://abc123.execute-api.ap-south-1.amazonaws.com/prod
+// Leave it empty until the backend is deployed. Never put AWS keys, tokens or passwords in this file.
+const API_BASE_URL = "https://cvjwaxr8d5.execute-api.ap-southeast-2.amazonaws.com";
+// DEVELOPMENT ONLY: sent as the x-user-id header so test data can be separated per tester.
+// Any client can send any value, so this does NOT identify or protect a real student.
+// Replace it with verified authentication (e.g. a Cognito JWT) before real users access the app.
+const DEV_USER_ID = "dev-user-1";
+const API_TIMEOUT_MS = 15000;
+// Task enum values must match what the Tasks Lambda stores and validates. Adjust here if the backend differs.
+const TASK_STATUS = {open:"Pending", progress:"In Progress", done:"Completed", cancelled:"Cancelled"};
+const TASK_STATUSES = [TASK_STATUS.open,TASK_STATUS.progress,TASK_STATUS.done,TASK_STATUS.cancelled];
+const TASK_TYPES = ["Follow-up","Assessment","Interview","Deadline","Other"];
+const day=o=>{const d=new Date();d.setDate(d.getDate()+o);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+// Sample data used ONLY by the landing/sign-in preview card. The dashboard never reads it.
+const DEMO=[["Google","Software Engineering Intern","interview"],["Microsoft","Frontend Developer Intern","assessment"],["Amazon Web Services","Cloud Engineering Intern","offer"],["Flipkart","Data Analyst Intern","applied"],["Razorpay","Frontend Developer Intern","saved"],["Atlassian","Software Engineering Intern","rejected"]].map(r=>({companyName:r[0],role:r[1],status:r[2]}));
+
+// ---------- API client (API Gateway + Lambda) ----------
+class ApiError extends Error{constructor(message,status=0,details=null){super(message);this.name="ApiError";this.status=status;this.details=details}}
+const HTTP_MSG={400:"The server rejected the request. Check the details and try again.",401:"You’re not authorised to do that.",403:"You’re not authorised to do that.",404:"That record wasn’t found. It may have been deleted.",409:"That conflicts with existing data.",429:"Too many requests. Please wait a moment and try again."};
+async function request(method,path,body){
+ if(!API_BASE_URL)throw new ApiError("Backend not configured. Set API_BASE_URL in InternTrack.html to your API Gateway Invoke URL.");
+ const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),API_TIMEOUT_MS);
+ const headers={Accept:"application/json","x-user-id":DEV_USER_ID};
+ if(body!==undefined)headers["Content-Type"]="application/json";
+ try{
+  let res;
+  try{res=await fetch(API_BASE_URL.replace(/\/+$/,"")+path,{method,headers,signal:ctl.signal,body:body===undefined?undefined:JSON.stringify(body)})}
+  catch(e){throw new ApiError(e.name==="AbortError"?"The request timed out. Please try again.":"Couldn’t reach the server. Check your internet connection and the API’s CORS settings.")}
+  const text=await res.text();let data=null;
+  if(text){try{data=JSON.parse(text)}catch(_){data=null}}
+  if(!res.ok){const msg=(data&&(data.message||data.error))||HTTP_MSG[res.status]||(res.status>=500?"The server ran into a problem. Please try again.":"Request failed ("+res.status+").");
+   throw new ApiError(typeof msg==="string"?msg:"Request failed ("+res.status+").",res.status,data&&(data.errors||data.details)||null)}
+  if(text&&data===null)throw new ApiError("The server sent a response that isn’t valid JSON.",res.status);
+  return data}
+ finally{clearTimeout(timer)}}
+const api={get:p=>request("GET",p),post:(p,b)=>request("POST",p,b),put:(p,b)=>request("PUT",p,b),del:p=>request("DELETE",p)};
+const unwrap=(r,keys)=>Array.isArray(r)?r:(keys.map(k=>r?.[k]).find(Array.isArray)||[]);
+
+// ---------- mapping layer: frontend <-> backend ----------
+const STATUS_TO_API={saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",withdrawn:"Withdrawn"};
+const fromApiStatus=s=>{const k=String(s||"").toLowerCase();return STATUS_TO_API[k]?k:"saved"};
+const dOnly=v=>v?String(v).slice(0,10):"";
+// backend -> frontend. applicationId becomes id; company becomes companyName.
+const fromApiApp=b=>({id:b.applicationId,companyName:b.company||"",role:b.role||"",location:b.location||"",stipend:b.stipend||"",dateApplied:dOnly(b.dateApplied),deadline:dOnly(b.deadline),jobUrl:b.jobUrl||"",notes:b.notes||"",nextAction:b.nextAction||"",status:fromApiStatus(b.status),createdAt:b.createdAt||"",updatedAt:b.updatedAt||b.createdAt||""});
+// frontend -> backend. Only fields the backend stores are sent (workMode, nextActionDate and nextActionDone are NOT).
+// Creates omit empty optional fields; updates send "" so a cleared field is actually cleared.
+const APP_FIELDS=["role","location","stipend","dateApplied","deadline","jobUrl","notes","nextAction"];
+function toApiApp(a,forUpdate){const o={company:String(a.companyName||"").trim(),status:STATUS_TO_API[a.status]||"Saved"};for(const k of APP_FIELDS){const v=String(a[k]??"").trim();if(v||forUpdate)o[k]=v}return o}
+const fromApiTask=b=>({id:b.taskId,title:b.title||"",description:b.description||"",dueDate:dOnly(b.dueDate),type:b.type||"",status:b.status||"",applicationId:b.applicationId||"",createdAt:b.createdAt||"",updatedAt:b.updatedAt||b.createdAt||""});
+const TASK_FIELDS=["description","dueDate","type","applicationId"];
+function toApiTask(t,forUpdate){const o={title:String(t.title||"").trim(),status:t.status||TASK_STATUS.open};for(const k of TASK_FIELDS){const v=String(t[k]??"").trim();if(v||forUpdate)o[k]=v}return o}
+// PUT sends the full set of supported fields (existing record merged with the change) so it works
+// whether the Lambda replaces the item or only updates the fields it receives.
+const enc=encodeURIComponent;
 const svc={
- async getApplications(){if(API_BASE_URL)return http("/applications");await wait(500);return structuredClone(db)},
- async getApplicationById(id){if(API_BASE_URL)return http("/applications/"+id);return structuredClone(db.find(a=>a.id===id))},
- async createApplication(d){if(API_BASE_URL)return http("/applications",{method:"POST",body:JSON.stringify(d)});await wait(250);const a={...d,id:"a"+Date.now(),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};db.unshift(a);return structuredClone(a)},
- async updateApplication(id,d){if(API_BASE_URL)return http("/applications/"+id,{method:"PUT",body:JSON.stringify(d)});await wait(200);const i=db.findIndex(a=>a.id===id);db[i]={...db[i],...d,updatedAt:new Date().toISOString()};return structuredClone(db[i])},
- async deleteApplication(id){if(API_BASE_URL)return http("/applications/"+id,{method:"DELETE"});await wait(200);db=db.filter(a=>a.id!==id)}
+ async getApplications(){const r=unwrap(await api.get("/applications"),["applications","items","data"]);if(r.some(x=>!x.applicationId))throw new ApiError("The Applications API response is missing applicationId on some records.");return r.map(fromApiApp)},
+ createApplication:a=>api.post("/applications",toApiApp(a)),
+ updateApplication:(id,a)=>api.put("/applications/"+enc(id),toApiApp(a,true)),
+ deleteApplication:id=>api.del("/applications/"+enc(id)),
+ async getTasks(){const r=unwrap(await api.get("/tasks"),["tasks","items","data"]);if(r.some(x=>!x.taskId))throw new ApiError("The Tasks API response is missing taskId on some records (the backend must map its taskKey to taskId).");return r.map(fromApiTask)},
+ createTask:t=>api.post("/tasks",toApiTask(t)),
+ updateTask:(id,t)=>api.put("/tasks/"+enc(id),toApiTask(t,true)),
+ deleteTask:id=>api.del("/tasks/"+enc(id))
 };
 // ---------- helpers ----------
 const ST={saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",withdrawn:"Withdrawn"},PIPE=["saved","applied","assessment","interview","offer"],DONE=["offer","rejected","withdrawn"];
-const P={dash:"M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z",brief:"M3 7h18v13H3zM8 7V4h8v3",kan:"M6 4v16M12 4v10M18 4v13",cal:"M3 5h18v16H3zM3 10h18M8 3v4M16 3v4",chart:"M3 3v18h18M7 15v3M12 10v8M17 6v12",note:"M5 3h11l4 4v14H5zM9 12h7M9 16h7",set:"M12 15a3 3 0 100-6 3 3 0 000 6zM19 12l2-1-2-4-2 1-2-2V4h-4v2l-2 2-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 2v2h4v-2l2-2 2 1 2-4-2-1z",help:"M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9.5a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 3.5M12 17h.01",bell:"M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4",plus:"M12 5v14M5 12h14",search:"M11 18a7 7 0 100-14 7 7 0 000 14zM21 21l-5-5",x:"M18 6L6 18M6 6l12 12",eye:"M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z",edit:"M12 20h9M16.5 3.5l4 4L8 20l-5 1 1-5z",trash:"M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15",menu:"M3 6h18M3 12h18M3 18h18",table:"M3 5h18v14H3zM3 10h18M3 15h18M9 5v14",send:"M22 2L11 13M22 2l-7 20-4-9-9-4z",clock:"M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2",star:"M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9z",check:"M5 13l4 4L19 7",sun:"M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.88-9.88 1.42-1.42M16 12a4 4 0 11-8 0 4 4 0 018 0z",moon:"M20.9 13A9 9 0 1111 3.1 7 7 0 0020.9 13z",monitor:"M3 4h18v13H3zM8 21h8m-4-4v4"};
+const P={dash:"M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z",brief:"M3 7h18v13H3zM8 7V4h8v3",kan:"M6 4v16M12 4v10M18 4v13",cal:"M3 5h18v16H3zM3 10h18M8 3v4M16 3v4",chart:"M3 3v18h18M7 15v3M12 10v8M17 6v12",note:"M5 3h11l4 4v14H5zM9 12h7M9 16h7",set:"M12 15a3 3 0 100-6 3 3 0 000 6zM19 12l2-1-2-4-2 1-2-2V4h-4v2l-2 2-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 2v2h4v-2l2-2 2 1 2-4-2-1z",help:"M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9.5a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 3.5M12 17h.01",bell:"M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4",plus:"M12 5v14M5 12h14",tasks:"M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11",search:"M11 18a7 7 0 100-14 7 7 0 000 14zM21 21l-5-5",x:"M18 6L6 18M6 6l12 12",eye:"M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z",edit:"M12 20h9M16.5 3.5l4 4L8 20l-5 1 1-5z",trash:"M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15",menu:"M3 6h18M3 12h18M3 18h18",table:"M3 5h18v14H3zM3 10h18M3 15h18M9 5v14",send:"M22 2L11 13M22 2l-7 20-4-9-9-4z",clock:"M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2",star:"M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9z",check:"M5 13l4 4L19 7",sun:"M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.88-9.88 1.42-1.42M16 12a4 4 0 11-8 0 4 4 0 018 0z",moon:"M20.9 13A9 9 0 1111 3.1 7 7 0 0020.9 13z",monitor:"M3 4h18v13H3zM8 21h8m-4-4v4"};
 const ic=n=>`<svg class="i" viewBox="0 0 24 24"><path d="${P[n]}"/></svg>`;
 const Theme=(()=>{let preference="system";try{const stored=localStorage.getItem("interntrack-theme");if(["light","dark","system"].includes(stored))preference=stored}catch(_){}const media=window.matchMedia?.("(prefers-color-scheme: dark)");const apply=()=>{const theme=preference==="system"?(media?.matches?"dark":"light"):preference;document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme;return theme};const onSystemChange=()=>{if(preference==="system")apply()};if(media?.addEventListener)media.addEventListener("change",onSystemChange);else media?.addListener?.(onSystemChange);return{get theme(){return apply()},getPreference(){return preference},set(theme){if(!["light","dark","system"].includes(theme))return apply();preference=theme;try{localStorage.setItem("interntrack-theme",theme)}catch(_){}return apply()},toggle(){return this.set(this.theme==="dark"?"light":"dark")}}})();
 const themeToggle=()=>{const dark=Theme.theme==="dark",label=`Switch to ${dark?"light":"dark"} mode`;return`<button class="ib theme-control" data-act="theme" aria-label="${label}" title="${label}">${ic(dark?"moon":"sun")}</button>`};
@@ -98,36 +141,57 @@ const logo=n=>`<span class="lg" style="background:${COL[[...n].reduce((a,c)=>a+c
 const badge=s=>`<span class="b s-${s}">${ST[s]}</span>`;
 const active=a=>!DONE.includes(a.status);
 function urg(d){const n=dl(d);if(n==null)return"";if(n<0)return`<span class="chip u-over">${-n}d overdue</span>`;if(n<=7)return`<span class="chip u-soon">${n==0?"Today":n+"d left"}</span>`;return`<span class="chip u-ok">${n}d left</span>`}
+const ago=iso=>{const t=Date.parse(iso);if(!t)return"";const s=Math.max(0,(Date.now()-t)/1000);if(s<60)return"Just now";if(s<3600)return Math.floor(s/60)+"m ago";if(s<86400)return Math.floor(s/3600)+"h ago";return Math.floor(s/86400)+"d ago"};
+const safeUrl=u=>/^https?:\/\/\S+$/i.test(u||"");
+const taskDone=k=>/^(done|complete|completed|cancelled|canceled)$/i.test(k.status||"");
+const byDue=(a,b)=>(a.dueDate||"9999-12-31").localeCompare(b.dueDate||"9999-12-31");
+const appName=id=>{const a=S.apps.find(x=>x.id==id);return a?a.companyName:""};
 // ---------- state ----------
-const S={route:"landing",obs:0,obw:"",col:false,page:"dash",apps:[],loading:true,error:"",q:"",fs:"all",fd:"all",fl:"all",sort:"new",view:"table",gq:"",log:[{t:"Offer received from Amazon Web Services",w:"2d ago"},{t:"Moved Google to Interview",w:"3d ago"},{t:"Added Razorpay to Saved",w:"4d ago"}],open:null,modal:null,menu:null,nav:false,pg:1};
+const S={route:"landing",obs:0,obw:"",col:false,page:"dash",apps:[],tasks:[],loading:true,started:false,busy:null,error:"",tasksError:"",q:"",fs:"all",fd:"all",fl:"all",sort:"new",view:"table",gq:"",tq:"",fts:"all",open:null,modal:null,menu:null,nav:false,pg:1};
 const $=s=>document.querySelector(s);
-const toast=m=>{const e=document.createElement("div");e.className="t";e.textContent=m;$("#toast").append(e);setTimeout(()=>e.remove(),3000)};
-const logAct=t=>S.log.unshift({t,w:"Just now"});
-async function load(){S.loading=true;S.error="";render();try{S.apps=await svc.getApplications()}catch(e){S.error=e.message}S.loading=false;render()}
+const toast=(m,kind)=>{const e=document.createElement("div");e.className="t"+(kind?" e":"");e.textContent=m;$("#toast").append(e);setTimeout(()=>e.remove(),kind?6000:3000)};
+// Re-fetch from AWS. Never throws: failures are stored in S.error / S.tasksError.
+async function refresh(w="both"){const jobs=[];
+ if(w!="tasks")jobs.push(svc.getApplications().then(r=>{S.apps=r;S.error=""},e=>{S.error=e.message}));
+ if(w!="apps")jobs.push(svc.getTasks().then(r=>{S.tasks=r;S.tasksError=""},e=>{S.tasksError=e.message}));
+ await Promise.all(jobs)}
+// Run one write request: busy flag + progress bar, refresh from AWS on success, toast on success/failure.
+async function mutate(key,fn,o){
+ if(S.busy){render();return{ok:false}}
+ S.busy=key;render();
+ try{await fn();await refresh(o.which||"both");o.done?.();toast(o.ok);return{ok:true}}
+ catch(e){toast(o.fail+": "+e.message,"e");return{ok:false,error:e.message,details:e.details}}
+ finally{S.busy=null;render()}}
+async function load(){S.loading=true;S.error="";S.tasksError="";render();await refresh("both");S.loading=false;render()}
+// Data is only requested once the user actually enters the app (not on the landing page).
+function enter(){if(S.route=="app"&&!S.started){S.started=true;load()}else render()}
 function filtered(q,fs,fd,fl,sort){let r=S.apps.filter(a=>(a.companyName+" "+a.role).toLowerCase().includes(q.toLowerCase())&&(fs=="all"||a.status==fs)&&(fl=="all"||a.location==fl));
  if(fd!="all")r=r.filter(a=>{const n=dl(a.deadline);return fd=="none"?n==null:n!=null&&(fd=="over"?n<0:fd=="7"?n>=0&&n<=7:n>=0&&n<=30)});
  const dv=a=>a.deadline?new Date(a.deadline).getTime():9e15;
- return r.sort((a,b)=>sort=="old"?a.createdAt.localeCompare(b.createdAt):sort=="due"?dv(a)-dv(b):b.createdAt.localeCompare(a.createdAt))}
+ return r.sort((a,b)=>sort=="old"?(a.createdAt||"").localeCompare(b.createdAt||""):sort=="due"?dv(a)-dv(b):(b.createdAt||"").localeCompare(a.createdAt||""))}
 // ---------- views ----------
 const skel=()=>`<div class="card pad">${'<div class="sk"></div>'.repeat(8)}</div>`;
 const errv=()=>`<div class="card empty"><b>Couldn’t load applications</b><p>${esc(S.error)}</p><button class="btn p" data-act="retry">Try again</button></div>`;
 const emptyv=(t,s)=>`<div class="empty">${ic("brief")}<div><b>${t}</b></div><p>${s}</p></div>`;
-function metrics(){const A=S.apps,n=(f)=>A.filter(f).length;const M=[["Total Applications",A.length,"brief","var(--bs)","var(--blue)","+3 this week"],["In Progress",n(a=>["applied","assessment","interview"].includes(a.status)),"clock","var(--as)","var(--amber)","Active pipeline"],["Interviews",n(a=>a.status=="interview"),"send","var(--ps)","var(--purple)","Scheduled or ongoing"],["Offers Received",n(a=>a.status=="offer"),"star","var(--gs)","var(--green)","Congratulations!"]];
- return`<div class="grid4">${M.map(m=>`<div class="card m"><div class="ic" style="background:${m[3]};color:${m[4]}">${ic(m[2])}</div><div><div class="n">${m[1]}</div><div>${m[0]}</div><small>${m[5]}</small></div></div>`).join("")}</div>`}
+function metrics(){const A=S.apps,n=f=>A.filter(f).length,wk=n(a=>Date.now()-Date.parse(a.createdAt)<7*864e5);const M=[["Total Applications",A.length,"brief","var(--bs)","var(--blue)",wk+" added in the last 7 days"],["In Progress",n(a=>["applied","assessment","interview"].includes(a.status)),"clock","var(--as)","var(--amber)","Active pipeline"],["Interviews",n(a=>a.status=="interview"),"send","var(--ps)","var(--purple)","Scheduled or ongoing"],["Offers Received",n(a=>a.status=="offer"),"star","var(--gs)","var(--green)",n(a=>a.status=="rejected")+" rejected"]];
+  return`<div class="grid4">${M.map(m=>`<div class="card m"><div class="ic" style="background:${m[3]};color:${m[4]}">${ic(m[2])}</div><div><div class="n">${m[1]}</div><div>${m[0]}</div><small>${m[5]}</small></div></div>`).join("")}</div>`}
 function pipeline(){const c=s=>S.apps.filter(a=>a.status==s).length;return`<div class="card pad"><div class="ch"><h3>Application Progress</h3></div><div class="pipe">${PIPE.map(s=>`<div><b>${c(s)}</b><span>${ST[s]}</span></div>`).join("")}</div><div class="out"><span>Outcomes:</span><span>${badge("rejected")} ${c("rejected")}</span><span>${badge("withdrawn")} ${c("withdrawn")}</span></div></div>`}
-function rows(list,full){return list.map(a=>`<tr class="r" data-act="open" data-id="${a.id}"><td><div class="co">${logo(a.companyName)}<div><b>${esc(a.companyName)}</b><div class="mut">${esc(a.location||"")}</div></div></div></td><td>${esc(a.role)}</td><td>${fmt(a.dateApplied)}</td><td>${badge(a.status)}</td>${full?"":`<td>${esc(a.nextAction||"—")}</td>`}<td>${a.deadline&&active(a)?urg(a.deadline)+`<div class="mut">${fmt(a.deadline)}</div>`:fmt(a.deadline)}</td>${full?`<td>${esc(a.nextAction||"—")}</td>`:""}<td style="white-space:nowrap" onclick="event.stopPropagation()"><button class="ib" title="View" data-act="open" data-id="${a.id}">${ic("eye")}</button><button class="ib" title="Edit" data-act="edit" data-id="${a.id}">${ic("edit")}</button><button class="ib" title="Delete" data-act="del" data-id="${a.id}">${ic("trash")}</button></td></tr>`).join("")}
+function rows(list,full){return list.map(a=>`<tr class="r" data-act="open" data-id="${esc(a.id)}"><td><div class="co">${logo(a.companyName)}<div><b>${esc(a.companyName)}</b><div class="mut">${esc(a.location||"")}</div></div></div></td><td>${esc(a.role)}</td><td>${fmt(a.dateApplied)}</td><td>${badge(a.status)}</td>${full?"":`<td>${esc(a.nextAction||"—")}</td>`}<td>${a.deadline&&active(a)?urg(a.deadline)+`<div class="mut">${fmt(a.deadline)}</div>`:fmt(a.deadline)}</td>${full?`<td>${esc(a.nextAction||"—")}</td>`:""}<td style="white-space:nowrap" data-noopen><button class="ib" title="View" data-act="open" data-id="${esc(a.id)}">${ic("eye")}</button><button class="ib" title="Edit" data-act="edit" data-id="${esc(a.id)}">${ic("edit")}</button><button class="ib" title="Delete" data-act="del" data-id="${esc(a.id)}">${ic("trash")}</button></td></tr>`).join("")}
+function nextActions(){const open=S.tasks.filter(k=>!taskDone(k)).sort(byDue).slice(0,6),over=S.tasks.filter(k=>!taskDone(k)&&dl(k.dueDate)!=null&&dl(k.dueDate)<0).length;
+  const body=S.tasksError?`<div class="empty"><b>Couldn’t load tasks</b><p>${esc(S.tasksError)}</p><button class="btn" data-act="retry">Try again</button></div>`:open.length?open.map(k=>`<label class="item" style="font-weight:400;margin:0"><input type="checkbox" data-act="task" data-id="${esc(k.id)}" aria-label="Mark “${esc(k.title)}” complete" ${S.busy=="task:"+k.id?"disabled":""}><div class="g"><b>${esc(k.title)}</b><span class="mut">${esc(appName(k.applicationId)||k.type||"Task")} · ${fmt(k.dueDate)}</span></div>${urg(k.dueDate)}</label>`).join(""):emptyv("All caught up","No pending tasks.");
+  return`<div class="card pad"><div class="ch"><h3>Next Actions ${over?`<span class="chip u-over">${over} overdue</span>`:""}</h3><div class="row" style="gap:8px"><a href="#" data-act="go" data-p="tasks" style="color:var(--blue);font-weight:500;text-decoration:none">View all</a><button class="btn" data-act="addtask">${ic("plus")} Add</button></div></div>${body}</div>`}
 function dashboard(){
- const list=filtered(S.q,S.fs,"all","all","new").slice(0,6);
- const dls=S.apps.filter(a=>a.deadline&&active(a)).sort((a,b)=>a.deadline.localeCompare(b.deadline)).slice(0,5);
- const tasks=S.apps.filter(a=>a.nextAction&&a.nextActionDate&&active(a)).sort((a,b)=>a.nextActionDate.localeCompare(b.nextActionDate)).slice(0,6);
- return`<div class="wrap"><div class="row between"><div><h1 class="h1">Your Internship Journey</h1><p class="sub">Stay organized, track your progress, and take the next step toward your career.</p></div><button class="btn p" data-act="add">${ic("plus")} Add Application</button></div>
- ${metrics()}<div class="two"><div class="stack">${pipeline()}
- <div class="card pad"><div class="ch"><h3>Recent Applications</h3><a href="#" data-act="go" data-p="apps" style="color:var(--blue);font-weight:500;text-decoration:none">View All Applications →</a></div>
- <div class="row" style="margin-bottom:10px"><div style="flex:1;min-width:160px"><input data-in="q" placeholder="Search company or role" value="${esc(S.q)}"></div><select data-in="fs" style="width:auto"><option value="all">All statuses</option>${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${S.fs==k?"selected":""}>${v}</option>`).join("")}</select></div>
- <div class="tw">${list.length?`<table><thead><tr><th>Company</th><th>Role</th><th>Applied</th><th>Status</th><th>Next Action</th><th>Deadline</th><th></th></tr></thead><tbody>${rows(list)}</tbody></table>`:emptyv("No matching applications","Try a different search or filter.")}</div></div></div>
- <div class="stack"><div class="card pad"><div class="ch"><h3>Upcoming Deadlines</h3></div>${dls.length?dls.map(a=>`<div class="item">${logo(a.companyName)}<div class="g"><b>${esc(a.companyName)}</b><span class="mut">${esc(a.role)} · ${fmt(a.deadline)}</span></div>${urg(a.deadline)}<button class="btn" data-act="open" data-id="${a.id}">View</button></div>`).join(""):emptyv("No deadlines","Add a deadline to an application.")}</div>
- <div class="card pad"><div class="ch"><h3>Next Actions</h3></div>${tasks.length?tasks.map(a=>`<label class="item" style="font-weight:400;margin:0"><input type="checkbox" data-act="task" data-id="${a.id}" ${a.nextActionDone?"checked":""}><div class="g"><b class="${a.nextActionDone?"done":""}">${esc(a.nextAction)}</b><span class="mut">${esc(a.companyName)} · ${fmt(a.nextActionDate)}</span></div>${a.nextActionDone?"":urg(a.nextActionDate)}</label>`).join(""):emptyv("All caught up","No pending tasks.")}</div>
- <div class="card pad"><div class="ch"><h3>Application Activity</h3></div>${S.log.slice(0,6).map(l=>`<div class="item"><span style="color:var(--blue)">${ic("check")}</span><div class="g"><b style="font-weight:500;white-space:normal">${esc(l.t)}</b><span class="mut">${l.w}</span></div></div>`).join("")}</div></div></div></div>`}
+  const list=filtered(S.q,S.fs,"all","all","new").slice(0,6);
+  const dls=S.apps.filter(a=>a.deadline&&active(a)).sort((a,b)=>a.deadline.localeCompare(b.deadline)).slice(0,5);
+  const act=[...S.apps].sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||"")).slice(0,6);
+  return`<div class="wrap"><div class="row between"><div><h1 class="h1">Your Internship Journey</h1><p class="sub">Stay organized, track your progress, and take the next step toward your career.</p></div><button class="btn p" data-act="add">${ic("plus")} Add Application</button></div>
+  ${metrics()}<div class="two"><div class="stack">${pipeline()}
+  <div class="card pad"><div class="ch"><h3>Recent Applications</h3><a href="#" data-act="go" data-p="apps" style="color:var(--blue);font-weight:500;text-decoration:none">View All Applications →</a></div>
+  <div class="row" style="margin-bottom:10px"><div style="flex:1;min-width:160px"><input data-in="q" placeholder="Search company or role" value="${esc(S.q)}"></div><select data-in="fs" style="width:auto"><option value="all">All statuses</option>${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${S.fs==k?"selected":""}>${v}</option>`).join("")}</select></div>
+  <div class="tw">${list.length?`<table><thead><tr><th>Company</th><th>Role</th><th>Applied</th><th>Status</th><th>Next Action</th><th>Deadline</th><th></th></tr></thead><tbody>${rows(list)}</tbody></table>`:S.apps.length?emptyv("No matching applications","Try a different search or filter."):emptyv("No applications yet","Add your first internship to start tracking.")}</div></div></div>
+  <div class="stack"><div class="card pad"><div class="ch"><h3>Upcoming Deadlines</h3></div>${dls.length?dls.map(a=>`<div class="item">${logo(a.companyName)}<div class="g"><b>${esc(a.companyName)}</b><span class="mut">${esc(a.role)} · ${fmt(a.deadline)}</span></div>${urg(a.deadline)}<button class="btn" data-act="open" data-id="${esc(a.id)}">View</button></div>`).join(""):emptyv("No deadlines","Add a deadline to an application.")}</div>
+  ${nextActions()}
+  <div class="card pad"><div class="ch"><h3>Application Activity</h3></div>${act.length?act.map(a=>`<div class="item"><span style="color:var(--blue)">${ic("check")}</span><div class="g"><b style="font-weight:500;white-space:normal">${a.createdAt&&a.createdAt==a.updatedAt?"Added":"Updated"} ${esc(a.companyName)} · ${ST[a.status]}</b><span class="mut">${ago(a.updatedAt)||"—"}</span></div></div>`).join(""):emptyv("No activity yet","Activity appears here after you add or update applications.")}</div></div></div></div>`}
 function applications(pipe){
  const locs=[...new Set(S.apps.map(a=>a.location).filter(Boolean))].sort();
  const list=filtered(S.q,S.fs,S.fd,S.fl,S.sort);const PS=8,pages=Math.max(1,Math.ceil(list.length/PS));if(S.pg>pages)S.pg=pages;
@@ -136,119 +200,191 @@ function applications(pipe){
  if(S.loading)body=skel();else if(S.error)body=errv();else if(!S.apps.length)body=`<div class="card">${emptyv("No applications yet","Add your first internship to start tracking.")}<div style="text-align:center;padding-bottom:24px"><button class="btn p" data-act="add">${ic("plus")} Add Application</button></div></div>`;
  else if(!list.length)body=`<div class="card">${emptyv("No results","No applications match your filters.")}<div style="text-align:center;padding-bottom:24px"><button class="btn" data-act="clear">Clear filters</button></div></div>`;
  else if(S.view=="table"&&!pipe){const pg=list.slice((S.pg-1)*PS,S.pg*PS);body=`<div class="card"><div class="tw"><table><thead><tr><th>Company</th><th>Position</th><th>Applied On</th><th>Status</th><th>Deadline</th><th>Next Action</th><th></th></tr></thead><tbody>${rows(pg,true)}</tbody></table></div><div class="row between pad"><span class="mut">${list.length} application${list.length>1?"s":""}</span><div class="row"><button class="btn" data-act="pg" data-d="-1" ${S.pg<2?"disabled":""}>Previous</button><span class="mut">Page ${S.pg} of ${pages}</span><button class="btn" data-act="pg" data-d="1" ${S.pg>=pages?"disabled":""}>Next</button></div></div></div>`}
- else{const cols=S.fs!="all"&&!PIPE.includes(S.fs)?[S.fs]:PIPE;body=`<div class="kan" style="grid-template-columns:repeat(${cols.length},minmax(220px,1fr))">${cols.map(s=>{const c=list.filter(a=>a.status==s);return`<div class="col" data-drop="${s}"><h4>${ST[s]}<span class="mut">${c.length}</span></h4>${c.map(a=>`<div class="kc" draggable="true" data-drag="${a.id}" data-act="open" data-id="${a.id}"><div class="co">${logo(a.companyName)}<div><b>${esc(a.companyName)}</b><span class="mut">${esc(a.role)}</span></div></div><div class="row between" style="margin-top:8px"><span class="mut">${a.deadline?fmt(a.deadline):"No deadline"}</span>${a.deadline&&active(a)?urg(a.deadline):""}</div>${a.nextAction?`<div class="mut" style="margin-top:6px">→ ${esc(a.nextAction)}</div>`:""}</div>`).join("")||`<div class="mut" style="padding:12px;text-align:center">Drop here</div>`}</div>`}).join("")}</div>${S.fs=="all"?`<p class="mut">Rejected and withdrawn applications are available via the status filter.</p>`:""}`}
+ else{const cols=S.fs!="all"&&!PIPE.includes(S.fs)?[S.fs]:PIPE;body=`<div class="kan" style="grid-template-columns:repeat(${cols.length},minmax(220px,1fr))">${cols.map(s=>{const c=list.filter(a=>a.status==s);return`<div class="col" data-drop="${s}"><h4>${ST[s]}<span class="mut">${c.length}</span></h4>${c.map(a=>`<div class="kc" draggable="true" data-drag="${esc(a.id)}" data-act="open" data-id="${esc(a.id)}"><div class="co">${logo(a.companyName)}<div><b>${esc(a.companyName)}</b><span class="mut">${esc(a.role)}</span></div></div><div class="row between" style="margin-top:8px"><span class="mut">${a.deadline?fmt(a.deadline):"No deadline"}</span>${a.deadline&&active(a)?urg(a.deadline):""}</div>${a.nextAction?`<div class="mut" style="margin-top:6px">→ ${esc(a.nextAction)}</div>`:""}</div>`).join("")||`<div class="mut" style="padding:12px;text-align:center">Drop here</div>`}</div>`}).join("")}</div>${S.fs=="all"?`<p class="mut">Rejected and withdrawn applications are available via the status filter.</p>`:""}`}
  return`<div class="wrap"><div class="row between"><div><h1 class="h1">${pipe?"Pipeline":"My Applications"}</h1><p class="sub">${pipe?"Drag cards between stages to update their status.":"Manage every opportunity in one place."}</p></div><button class="btn p" data-act="add">${ic("plus")} Add Application</button></div>
  <div class="tb"><input data-in="q" placeholder="Search by company or role" value="${esc(S.q)}"><select data-in="fs"><option value="all">All statuses</option>${Object.entries(ST).map(([k,v])=>opt(k,v,S.fs)).join("")}</select><select data-in="fd">${opt("all","Any deadline",S.fd)}${opt("over","Overdue",S.fd)}${opt("7","Next 7 days",S.fd)}${opt("30","Next 30 days",S.fd)}${opt("none","No deadline",S.fd)}</select><select data-in="fl">${opt("all","All locations",S.fl)}${locs.map(l=>opt(l,l,S.fl)).join("")}</select><select data-in="sort">${opt("new","Newest",S.sort)}${opt("old","Oldest",S.sort)}${opt("due","Upcoming deadline",S.sort)}</select><div class="seg"><button class="${S.view=="table"?"on":""}" data-act="view" data-v="table">${ic("table")}<span class="hide-s">Table</span></button><button class="${S.view=="kanban"?"on":""}" data-act="view" data-v="kanban">${ic("kan")}<span class="hide-s">Kanban</span></button></div></div>${body}</div>`}
-function settings(){const preference=Theme.getPreference(),choices=[["light","Light","sun"],["dark","Dark","moon"],["system","System","monitor"]];return`<div class="wrap"><div><h1 class="h1">Settings</h1><p class="sub">Manage your appearance preferences.</p></div><section class="card pad" style="margin-top:20px;max-width:720px" aria-labelledby="appearance-title"><div class="ch"><div><h3 id="appearance-title">Appearance</h3><p class="sub">Choose how InternTrack looks on this device.</p></div></div><div class="theme-choice" role="group" aria-label="Theme preference">${choices.map(([value,label,icon])=>`<button class="btn" data-act="theme-choice" data-theme-choice="${value}" aria-pressed="${preference===value}">${ic(icon)} ${label}</button>`).join("")}</div><p class="muted-panel mut" style="margin-top:12px">${preference==="system"?`Using your device setting: ${Theme.theme==="dark"?"Dark":"Light"} mode.`:`${preference[0].toUpperCase()+preference.slice(1)} mode is selected and will stay in use on this device.`}</p></section></div>`}
-function soon(t){return`<div class="wrap"><h1 class="h1">${t}</h1><div class="card" style="margin-top:20px">${emptyv(t+" is next","Dashboard and My Applications come first. This screen will be built on the same data and design system.")}</div></div>`}
+function settings(){const preference=Theme.getPreference(),choices=[["light","Light","sun"],["dark","Dark","moon"],["system","System","monitor"]];return`<div class="wrap"><div><h1 class="h1">Settings</h1><p class="sub">Manage your appearance preferences.</p></div><section class="card pad" style="margin-top:20px;max-width:720px" aria-labelledby="appearance-title"><div class="ch"><div><h3 id="appearance-title">Appearance</h3><p class="sub">Choose how InternTrack looks on this device.</p></div></div><div class="theme-choice" role="group" aria-label="Theme preference">${choices.map(([value,label,icon])=>`<button class="btn" data-act="theme-choice" data-theme-choice="${value}" aria-pressed="${preference===value}">${ic(icon)} ${label}</button>`).join("")}</div><p class="muted-panel mut" style="margin-top:12px">${preference==="system"?`Using your device setting: ${Theme.theme==="dark"?"Dark":"Light"} mode.`:`${preference[0].toUpperCase()+preference.slice(1)} mode is selected and will stay in use on this device.`}</p></section>${connCard()}</div>`}
+const connCard=()=>`<section class="card pad" style="margin-top:16px;max-width:720px"><div class="ch"><div><h3>Backend connection</h3><p class="sub">Applications and tasks are loaded from your AWS API.</p></div></div><p class="muted-panel mut">API: ${API_BASE_URL?"configured":"not configured — set API_BASE_URL in InternTrack.html"}<br>Development identity: requests send an <code>x-user-id</code> header. This is for testing only and is not real authentication.</p></section>`;
+function soon(t,m){return`<div class="wrap"><h1 class="h1">${t}</h1><div class="card" style="margin-top:20px">${emptyv(m?t+" — coming soon":t+" isn’t built yet",m||"This screen will be built on the same data and design system.")}</div></div>`}
 function detail(a){const cur=PIPE.indexOf(a.status),out=!PIPE.includes(a.status);
  const steps=[["Saved","saved",1],["Applied","applied",!!a.dateApplied||cur>=1||out&&!!a.dateApplied],["Assessment","assessment",cur>=2],["Interview","interview",cur>=3],["Offer","offer",cur>=4]];
  const tl=steps.filter(s=>s[2]||cur<4&&!out).map(s=>{const k=PIPE.indexOf(s[1]);const c=s[1]==a.status;return`<li class="${c?"c":s[2]&&!(out&&false)?"d":""}">${s[0]}${s[1]=="applied"&&a.dateApplied?` · ${fmt(a.dateApplied)}`:""}${c?" (current)":""}</li>`}).join("")+(out?`<li class="c x">${ST[a.status]}</li>`:"");
- return`<div class="ov dr" data-act="closeov"><div class="md"><div class="row between"><div class="co">${logo(a.companyName)}<div><h2 style="margin:0;font-size:18px">${esc(a.role)}</h2><span class="mut">${esc(a.companyName)}</span></div></div><button class="ib" data-act="closeov">${ic("x")}</button></div>
- <div style="margin:14px 0">${badge(a.status)}</div><div class="card pad" style="box-shadow:none"><div class="mut">Location</div>${esc(a.location||"—")} · ${esc(a.workMode||"—")}<div class="mut" style="margin-top:8px">Stipend</div>${esc(a.stipend||"—")}<div class="mut" style="margin-top:8px">Applied / Deadline</div>${fmt(a.dateApplied)} / ${fmt(a.deadline)} ${active(a)?urg(a.deadline):""}${a.jobUrl?`<div class="mut" style="margin-top:8px">Posting</div><a href="${esc(a.jobUrl)}" target="_blank" rel="noopener" style="color:var(--blue);word-break:break-all">${esc(a.jobUrl)}</a>`:""}${a.notes?`<div class="mut" style="margin-top:8px">Notes</div>${esc(a.notes)}`:""}</div>
- <h3>Recruitment Timeline</h3><ul class="tl">${tl}</ul>
- ${a.nextAction?`<h3>Next Action</h3><label class="item" style="font-weight:400"><input type="checkbox" data-act="task" data-id="${a.id}" ${a.nextActionDone?"checked":""}><div class="g"><b class="${a.nextActionDone?"done":""}">${esc(a.nextAction)}</b><span class="mut">Due ${fmt(a.nextActionDate)}</span></div></label>`:""}
- <h3>Update status</h3><select data-act="status" data-id="${a.id}">${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${a.status==k?"selected":""}>${v}</option>`).join("")}</select>
- <div class="row" style="margin-top:16px"><button class="btn p" data-act="edit" data-id="${a.id}">${ic("edit")} Edit</button><button class="btn" style="color:var(--red)" data-act="del" data-id="${a.id}">${ic("trash")} Delete</button></div></div></div>`}
-function form(m){const a=m.data||{status:"saved",workMode:"Remote"};const e=m.err||{};
- const f=(k,l,t="text",ph="",w="")=>`<div class="f ${w}"><label>${l}</label><input name="${k}" type="${t}" placeholder="${ph}" value="${esc(a[k]||"")}">${e[k]?`<div class="err">${e[k]}</div>`:""}</div>`;
- return`<div class="ov" data-act="closeov"><form class="md" data-form="${m.data?.id||""}"><div class="row between"><h2 style="margin:0">${m.data?.id?"Edit Application":"Add Application"}</h2><button type="button" class="ib" data-act="closeov">${ic("x")}</button></div><div class="fg">
- ${f("companyName","Company Name *","text","e.g. Google")}${f("role","Job Role *","text","e.g. Software Engineering Intern")}${f("jobUrl","Official Job Posting URL","url","https://…","w")}${e.dup?`<div class="warn w">${e.dup}</div>`:""}
- ${f("location","Location","text","City or Remote")}<div class="f"><label>Work Mode</label><select name="workMode">${["Remote","Hybrid","On-site"].map(o=>`<option ${a.workMode==o?"selected":""}>${o}</option>`).join("")}</select></div>
- ${f("stipend","Stipend","text","e.g. ₹50,000/mo")}<div class="f"><label>Current Status</label><select name="status">${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${a.status==k?"selected":""}>${v}</option>`).join("")}</select></div>
- ${f("deadline","Application Deadline","date")}${f("dateApplied","Date Applied","date")}${f("nextAction","Next Action","text","e.g. Complete assessment")}${f("nextActionDate","Next Action Date","date")}
- <div class="f w"><label>Notes</label><textarea name="notes" rows="3" placeholder="Recruiter contact, prep notes…">${esc(a.notes||"")}</textarea></div></div>
- <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="closeov">Cancel</button><button class="btn p">Save Application</button></div></form></div>`}
-function confirmDel(a){return`<div class="ov" data-act="closeov"><div class="md" style="max-width:400px"><h3 style="margin-top:0">Delete application?</h3><p>${esc(a.companyName)} — ${esc(a.role)} will be permanently removed.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeov">Cancel</button><button class="btn d" data-act="delok" data-id="${a.id}">Delete</button></div></div></div>`}
-const NAV=[["dash","Dashboard","dash"],["apps","My Applications","brief"],["pipe","Pipeline","kan"],["cal","Calendar","cal"],["ana","Analytics","chart"],["notes","Notes","note"],["docs","Documents","note"]];
-const TITLE={dash:"Dashboard",apps:"My Applications",pipe:"Application Pipeline",cal:"Calendar & Deadlines",ana:"Analytics",notes:"Notes",docs:"Documents",set:"Settings",help:"Help & Support"};
+  const ts=S.tasks.filter(k=>k.applicationId==a.id).sort(byDue);
+  return`<div class="ov dr" data-act="closeov"><div class="md"><div class="row between"><div class="co">${logo(a.companyName)}<div><h2 style="margin:0;font-size:18px">${esc(a.role)}</h2><span class="mut">${esc(a.companyName)}</span></div></div><button class="ib" data-act="closeov">${ic("x")}</button></div>
+  <div style="margin:14px 0">${badge(a.status)}</div><div class="card pad" style="box-shadow:none"><div class="mut">Location</div>${esc(a.location||"—")}<div class="mut" style="margin-top:8px">Stipend</div>${esc(a.stipend||"—")}<div class="mut" style="margin-top:8px">Applied / Deadline</div>${fmt(a.dateApplied)} / ${fmt(a.deadline)} ${active(a)?urg(a.deadline):""}${a.jobUrl?`<div class="mut" style="margin-top:8px">Posting</div>${safeUrl(a.jobUrl)?`<a href="${esc(a.jobUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue);word-break:break-all">${esc(a.jobUrl)}</a>`:`<span style="word-break:break-all">${esc(a.jobUrl)}</span>`}`:""}${a.notes?`<div class="mut" style="margin-top:8px">Notes</div>${esc(a.notes)}`:""}</div>
+  <h3>Recruitment Timeline</h3><ul class="tl">${tl}</ul>
+  ${a.nextAction?`<h3>Next Action</h3><p style="margin:0">${esc(a.nextAction)}</p>`:""}
+  <div class="row between" style="margin-top:16px"><h3 style="margin:0">Tasks</h3><button class="btn" data-act="addtask" data-id="${esc(a.id)}">${ic("plus")} Add task</button></div>
+  ${S.tasksError?`<p class="err">Couldn’t load tasks: ${esc(S.tasksError)}</p>`:ts.length?ts.map(k=>`<label class="item" style="font-weight:400;margin:0"><input type="checkbox" data-act="task" data-id="${esc(k.id)}" aria-label="Mark “${esc(k.title)}” complete" ${taskDone(k)?"checked":""} ${S.busy=="task:"+k.id?"disabled":""}><div class="g"><b class="${taskDone(k)?"done":""}">${esc(k.title)}</b><span class="mut">${esc(k.type||"Task")} · Due ${fmt(k.dueDate)}</span></div>${taskDone(k)?"":urg(k.dueDate)}</label>`).join(""):`<p class="mut">No tasks linked to this application.</p>`}
+  <h3>Update status</h3><select data-act="status" data-id="${esc(a.id)}" ${S.busy=="status:"+a.id?"disabled":""}>${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${a.status==k?"selected":""}>${v}</option>`).join("")}</select>
+  <div class="row" style="margin-top:16px"><button class="btn p" data-act="edit" data-id="${esc(a.id)}">${ic("edit")} Edit</button><button class="btn" style="color:var(--red)" data-act="del" data-id="${esc(a.id)}">${ic("trash")} Delete</button></div></div></div>`}
+function form(m){const a=m.data||{status:"saved"};const e=m.err||{},busy=S.busy=="save";
+  const f=(k,l,t="text",ph="",w="")=>`<div class="f ${w}"><label>${l}</label><input name="${k}" type="${t}" placeholder="${ph}" value="${esc(a[k]||"")}">${e[k]?`<div class="err">${esc(e[k])}</div>`:""}</div>`;
+  return`<div class="ov" data-act="closeov"><form class="md" data-form="${esc(m.data?.id||"")}"><div class="row between"><h2 style="margin:0">${m.data?.id?"Edit Application":"Add Application"}</h2><button type="button" class="ib" data-act="closeov">${ic("x")}</button></div><div class="fg">
+  ${f("companyName","Company Name *","text","e.g. Google")}${f("role","Job Role *","text","e.g. Software Engineering Intern")}${f("jobUrl","Official Job Posting URL","url","https://…","w")}${e.dup?`<div class="warn w">${e.dup}</div>`:""}
+  ${f("location","Location","text","City or Remote")}${f("stipend","Stipend","text","e.g. ₹50,000/mo")}
+  <div class="f"><label>Current Status</label><select name="status">${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${a.status==k?"selected":""}>${v}</option>`).join("")}</select></div>${f("deadline","Application Deadline","date")}
+  ${f("dateApplied","Date Applied","date")}${f("nextAction","Next Action","text","e.g. Complete assessment")}
+  <div class="f w"><label>Notes</label><textarea name="notes" rows="3" placeholder="Recruiter contact, prep notes…">${esc(a.notes||"")}</textarea></div></div>
+  ${e.form?`<div class="err" role="alert" style="margin-bottom:10px">${esc(e.form)}</div>`:""}
+  <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="closeov">Cancel</button><button class="btn p" ${busy?"disabled":""}>${busy?"Saving…":"Save Application"}</button></div></form></div>`}
+function confirmDel(a){const busy=S.busy=="del:"+a.id;return`<div class="ov" data-act="closeov"><div class="md" style="max-width:400px"><h3 style="margin-top:0">Delete application?</h3><p>${esc(a.companyName)} — ${esc(a.role)} will be permanently removed.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeov">Cancel</button><button class="btn d" data-act="delok" data-id="${esc(a.id)}" ${busy?"disabled":""}>${busy?"Deleting…":"Delete"}</button></div></div></div>`}
+function taskForm(m){const a=m.data||{},e=m.err||{},busy=S.busy=="tsave";
+  const st=a.status||TASK_STATUS.open,ty=a.type||TASK_TYPES[0],types=[...new Set([...TASK_TYPES,a.type].filter(Boolean))],sts=[...new Set([...TASK_STATUSES,st])];
+  const orphan=a.applicationId&&!S.apps.some(x=>x.id==a.applicationId);
+  return`<div class="ov" data-act="closeov"><form class="md" data-tform="${esc(a.id||"")}"><div class="row between"><h2 style="margin:0">${a.id?"Edit Task":"Add Task"}</h2><button type="button" class="ib" data-act="closeov">${ic("x")}</button></div><div class="fg">
+  <div class="f w"><label>Title *</label><input name="title" placeholder="e.g. Complete online assessment" value="${esc(a.title||"")}">${e.title?`<div class="err">${esc(e.title)}</div>`:""}</div>
+  <div class="f w"><label>Description</label><textarea name="description" rows="3" placeholder="Details, links, prep notes…">${esc(a.description||"")}</textarea></div>
+  <div class="f"><label>Type</label><select name="type">${types.map(o=>`<option ${ty==o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>
+  <div class="f"><label>Due date</label><input name="dueDate" type="date" value="${esc(a.dueDate||"")}"></div>
+  <div class="f"><label>Status</label><select name="status">${sts.map(o=>`<option value="${esc(o)}" ${st==o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>
+  <div class="f"><label>Application (optional)</label><select name="applicationId"><option value="">None</option>${orphan?`<option value="${esc(a.applicationId)}" selected>Unknown application</option>`:""}${S.apps.map(x=>`<option value="${esc(x.id)}" ${a.applicationId==x.id?"selected":""}>${esc(x.companyName)} — ${esc(x.role)}</option>`).join("")}</select></div></div>
+  ${e.form?`<div class="err" role="alert" style="margin-bottom:10px">${esc(e.form)}</div>`:""}
+  <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="closeov">Cancel</button><button class="btn p" ${busy?"disabled":""}>${busy?"Saving…":"Save Task"}</button></div></form></div>`}
+function confirmDelTask(k){const busy=S.busy=="tdel:"+k.id;return`<div class="ov" data-act="closeov"><div class="md" style="max-width:400px"><h3 style="margin-top:0">Delete task?</h3><p>“${esc(k.title)}” will be permanently removed.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeov">Cancel</button><button class="btn d" data-act="tdelok" data-id="${esc(k.id)}" ${busy?"disabled":""}>${busy?"Deleting…":"Delete"}</button></div></div></div>`}
+function tasksPage(){
+  const q=S.tq.toLowerCase();
+  const list=S.tasks.filter(k=>(S.fts=="all"||(S.fts=="open")==!taskDone(k))&&(k.title+" "+k.description+" "+k.type+" "+appName(k.applicationId)).toLowerCase().includes(q)).sort((a,b)=>taskDone(a)-taskDone(b)||byDue(a,b));
+  const opt=(v,l)=>`<option value="${v}" ${S.fts==v?"selected":""}>${l}</option>`;
+  let body;
+  if(S.loading)body=skel();
+  else if(S.tasksError)body=`<div class="card empty"><b>Couldn’t load tasks</b><p>${esc(S.tasksError)}</p><button class="btn p" data-act="retry">Try again</button></div>`;
+  else if(!S.tasks.length)body=`<div class="card">${emptyv("No tasks yet","Create tasks for assessments, interviews and follow-ups.")}<div style="text-align:center;padding-bottom:24px"><button class="btn p" data-act="addtask">${ic("plus")} Add Task</button></div></div>`;
+  else if(!list.length)body=`<div class="card">${emptyv("No results","No tasks match your search or filter.")}</div>`;
+  else body=`<div class="card"><div class="tw"><table><thead><tr><th></th><th>Task</th><th>Type</th><th>Application</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>${list.map(k=>{const d=taskDone(k);return`<tr><td style="width:36px"><input type="checkbox" data-act="task" data-id="${esc(k.id)}" aria-label="Mark “${esc(k.title)}” complete" ${d?"checked":""} ${S.busy=="task:"+k.id?"disabled":""}></td><td><b class="${d?"done":""}">${esc(k.title)}</b>${k.description?`<div class="mut">${esc(k.description)}</div>`:""}</td><td>${esc(k.type||"—")}</td><td>${k.applicationId?S.apps.some(x=>x.id==k.applicationId)?`<a href="#" data-act="open" data-id="${esc(k.applicationId)}" style="color:var(--blue);text-decoration:none">${esc(appName(k.applicationId))}</a>`:`<span class="mut">Unknown application</span>`:"—"}</td><td>${k.dueDate?fmt(k.dueDate)+(d?"":" "+urg(k.dueDate)):"—"}</td><td><span class="b ${/^cancel/i.test(k.status)?"s-withdrawn":d?"s-offer":/progress/i.test(k.status)?"s-assessment":"s-applied"}">${esc(k.status||"—")}</span></td><td style="white-space:nowrap"><button class="ib" title="Edit" aria-label="Edit task" data-act="edittask" data-id="${esc(k.id)}">${ic("edit")}</button><button class="ib" title="Delete" aria-label="Delete task" data-act="deltask" data-id="${esc(k.id)}">${ic("trash")}</button></td></tr>`}).join("")}</tbody></table></div><div class="pad mut">${list.length} task${list.length>1?"s":""}</div></div>`;
+  return`<div class="wrap"><div class="row between"><div><h1 class="h1">Tasks</h1><p class="sub">Assessments, interviews and follow-ups in one list.</p></div><button class="btn p" data-act="addtask">${ic("plus")} Add Task</button></div>
+  <div class="row" style="margin:16px 0"><div style="flex:1;min-width:180px"><input data-in="tq" placeholder="Search tasks" value="${esc(S.tq)}"></div><select data-in="fts" style="width:auto">${opt("all","All tasks")}${opt("open","Open")}${opt("done","Completed / cancelled")}</select></div>${body}</div>`}
+function analytics(){
+  const A=S.apps,c=s=>A.filter(a=>a.status==s).length,submitted=A.filter(a=>a.status!="saved").length;
+  const toAss=c("assessment")+c("interview")+c("offer"),toInt=c("interview")+c("offer"),responded=toAss+c("rejected");
+  const rate=(n,d)=>d?Math.round(n/d*100)+"%":"—";
+  const M=[["Applications submitted",submitted,"send","var(--bs)","var(--blue)","Everything past Saved"],["Application → Assessment",rate(toAss,submitted),"clock","var(--as)","var(--amber)",toAss+" of "+submitted],["Assessment → Interview",rate(toInt,toAss),"brief","var(--ps)","var(--purple)",toInt+" of "+toAss],["Offers received",c("offer"),"star","var(--gs)","var(--green)","Response rate "+rate(responded,submitted)]];
+  const COLS={saved:"--neutral-fg",applied:"--blue",assessment:"--amber",interview:"--purple",offer:"--green",rejected:"--red",withdrawn:"--neutral-fg"},mx=Math.max(1,...Object.keys(ST).map(status=>c(status)));
+  return`<div class="wrap"><div><h1 class="h1">Analytics</h1><p class="sub">Calculated from your saved applications.</p></div>
+  ${A.length?`<div class="grid5">${M.map(m=>`<div class="card m"><div class="ic" style="background:${m[3]};color:${m[4]}">${ic(m[2])}</div><div><div class="n">${m[1]}</div><div>${m[0]}</div><small>${m[5]}</small></div></div>`).join("")}</div>
+  <div class="card pad"><div class="ch"><h3>Applications by status</h3></div><div class="bars">${Object.entries(ST).map(([k,v])=>`<div class="bar"><span>${v}</span><i style="width:${Math.max(c(k)?4:0,Math.round(c(k)/mx*100))}%;background:var(${COLS[k]})"></i><b>${c(k)}</b></div>`).join("")}</div>
+  <p class="mut" style="margin-bottom:0">Rates are estimated from each application’s current status; stage history isn’t stored, so applications rejected after an assessment or interview aren’t counted in those stages.</p></div>`:`<div class="card" style="margin-top:20px">${emptyv("No data yet","Add applications to see your conversion rates.")}</div>`}</div>`}
+const bell=()=>[...S.apps.filter(a=>active(a)&&a.deadline&&dl(a.deadline)<=3).map(a=>`<button data-act="open" data-id="${esc(a.id)}">${esc(a.companyName)} deadline ${dl(a.deadline)<0?"passed":"is near"} · ${fmt(a.deadline)}</button>`),...S.tasks.filter(k=>!taskDone(k)&&k.dueDate&&dl(k.dueDate)<=3).map(k=>`<button data-act="go" data-p="tasks">${esc(k.title)} ${dl(k.dueDate)<0?"is overdue":"is due soon"} · ${fmt(k.dueDate)}</button>`)];
+const NAV=[["dash","Dashboard","dash"],["apps","My Applications","brief"],["pipe","Pipeline","kan"],["tasks","Tasks","tasks"],["cal","Calendar","cal"],["ana","Analytics","chart"],["notes","Notes","note"],["docs","Documents","note"]];
+const TITLE={dash:"Dashboard",apps:"My Applications",pipe:"Application Pipeline",tasks:"Tasks",cal:"Calendar & Deadlines",ana:"Analytics",notes:"Notes",docs:"Documents",set:"Settings",help:"Help & Support"};
+function pageHtml(){const w=h=>`<div class="wrap">${h}</div>`;
+  switch(S.page){
+   case"dash":return S.loading?w(skel()):S.error?w(errv()):dashboard();
+   case"apps":return applications();
+   case"pipe":return applications(true);
+   case"tasks":return tasksPage();
+   case"ana":return S.loading?w(skel()):S.error?w(errv()):analytics();
+   case"set":return settings();
+   case"docs":return soon("Documents","Resume and document uploads are a placeholder for now. They will use secure, backend-generated upload links; nothing is uploaded from this screen.");
+   default:return soon(TITLE[S.page])}}
 function render(){if(S.route!="app"){$("#app").innerHTML=pub();return}
- const fx=document.activeElement,fk=fx?.dataset?.in,pos=fx?.selectionStart;
- const page=S.page=="dash"?(S.loading?`<div class="wrap">${skel()}</div>`:S.error?`<div class="wrap">${errv()}</div>`:dashboard()):S.page=="apps"?applications():S.page=="pipe"?applications(true):S.page=="set"?settings():soon(TITLE[S.page]);
- const cur=S.open&&S.apps.find(a=>a.id==S.open);
- const unread=S.apps.filter(a=>active(a)&&a.deadline&&dl(a.deadline)<=3).length;
- $("#app").innerHTML=`<aside class="${S.nav?"open":""} ${S.col?"mini":""}"><div class="logo"><b>${ic("check")}</b>InternTrack</div>${NAV.map(n=>`<button class="nav ${S.page==n[0]?"on":""}" data-act="go" data-p="${n[0]}" title="${n[1]}">${ic(n[2])}${n[1]}</button>`).join("")}<div class="sp"></div><button class="nav ${S.page=="set"?"on":""}" data-act="go" data-p="set">${ic("set")}Settings</button><button class="nav ${S.page=="help"?"on":""}" data-act="go" data-p="help">${ic("help")}Help &amp; Support</button><div class="prof"><div class="av">AS</div><div style="flex:1"><b>Aisha Sharma</b><div class="mut">Student</div></div></div></aside><div class="back" data-act="navx"></div>
+  const fx=document.activeElement,fk=fx?.dataset?.in,pos=fx?.selectionStart;
+  const page=pageHtml();
+  const cur=S.open&&S.apps.find(a=>a.id==S.open);
+  const notes=bell(),unread=notes.length;
+ $("#app").innerHTML=`<aside class="${S.nav?"open":""} ${S.col?"mini":""}"><div class="logo"><b>${ic("check")}</b>InternTrack</div>${NAV.map(n=>`<button class="nav ${S.page==n[0]?"on":""}" data-act="go" data-p="${n[0]}" title="${n[1]}">${ic(n[2])}${n[1]}</button>`).join("")}<div class="sp"></div><button class="nav ${S.page=="set"?"on":""}" data-act="go" data-p="set">${ic("set")}Settings</button><button class="nav ${S.page=="help"?"on":""}" data-act="go" data-p="help">${ic("help")}Help &amp; Support</button><div class="prof"><div class="av">DU</div><div style="flex:1"><b>Dev user</b><div class="mut">Prototype sign-in</div></div></div></aside><div class="back" data-act="navx"></div>
  <main class="${S.col?"mini":""}"><header><button class="ib" id="menu" data-act="nav">${ic("menu")}</button><button class="ib cb" data-act="collapse" title="Collapse sidebar">${ic("menu")}</button><div><div class="crumb">InternTrack / ${TITLE[S.page]}</div><div class="ttl">${TITLE[S.page]}</div></div>
  <div class="srch">${ic("search")}<input data-in="gq" placeholder="Search companies, roles..." value="${esc(S.gq)}"></div>${themeToggle()}
- <div style="position:relative"><button class="ib" data-act="menu" data-m="bell" title="Notifications">${ic("bell")}${unread?'<span class="dot"></span>':""}</button>${S.menu=="bell"?`<div class="pop"><div><b>Notifications</b></div>${S.apps.filter(a=>active(a)&&a.deadline&&dl(a.deadline)<=3).map(a=>`<button data-act="open" data-id="${a.id}">${esc(a.companyName)} deadline ${dl(a.deadline)<0?"passed":"is near"} · ${fmt(a.deadline)}</button>`).join("")||"<div class='mut'>You’re all caught up.</div>"}</div>`:""}</div>
+ <div style="position:relative"><button class="ib" data-act="menu" data-m="bell" title="Notifications">${ic("bell")}${unread?'<span class="dot"></span>':""}</button>${S.menu=="bell"?`<div class="pop"><div><b>Notifications</b></div>${notes.join("")||"<div class='mut'>You’re all caught up.</div>"}</div>`:""}</div>
  <button class="btn p hide-s" data-act="add">${ic("plus")} Add Application</button>
- <div style="position:relative"><button class="ib" data-act="menu" data-m="user" aria-label="Open account menu"><span class="av">AS</span></button>${S.menu=="user"?`<div class="pop" style="width:200px"><button data-act="go" data-p="set">Settings</button><button data-act="route" data-r="landing">Sign out</button><button data-act="go" data-p="help">Help &amp; Support</button></div>`:""}</div></header>${page}</main>
- ${cur&&!S.modal?detail(cur):""}${S.modal?.type=="form"?form(S.modal):""}${S.modal?.type=="del"?confirmDel(S.modal.data):""}`;
+ <div style="position:relative"><button class="ib" data-act="menu" data-m="user" aria-label="Open account menu"><span class="av">DU</span></button>${S.menu=="user"?`<div class="pop" style="width:200px"><button data-act="go" data-p="set">Settings</button><button data-act="route" data-r="landing">Sign out</button><button data-act="go" data-p="help">Help &amp; Support</button></div>`:""}</div></header>${page}</main>
+ ${cur&&!S.modal?detail(cur):""}${S.modal?.type=="form"?form(S.modal):""}${S.modal?.type=="del"?confirmDel(S.modal.data):""}${S.modal?.type=="task"?taskForm(S.modal):""}${S.modal?.type=="tdel"?confirmDelTask(S.modal.data):""}${S.busy||S.loading?'<div class="prog" role="progressbar" aria-label="Loading"></div>':""}`;
  if(fk){const el=document.querySelector(`[data-in="${fk}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}}
 }
 // ---------- public site, auth, onboarding ----------
 const logoH=`<div class="logo" style="padding:0"><b>${ic("check")}</b>InternTrack</div>`;
-function prev(){const c=s=>db.filter(a=>a.status==s).length;return`<div class="card pad pv"><div class="row between"><b>Your Internship Journey</b><span class="b s-applied">Sample data</span></div><div class="pipe" style="margin:12px 0">${PIPE.map(s=>`<div><b>${c(s)}</b><span>${ST[s]}</span></div>`).join("")}</div>${db.slice(0,4).map(a=>`<div class="item">${logo(a.companyName)}<div class="g"><b>${esc(a.companyName)}</b><span class="mut">${esc(a.role)}</span></div>${badge(a.status)}</div>`).join("")}</div>`}
+function prev(){const c=s=>DEMO.filter(a=>a.status==s).length;return`<div class="card pad pv"><div class="row between"><b>Your Internship Journey</b><span class="b s-applied">Sample data</span></div><div class="pipe" style="margin:12px 0">${PIPE.map(s=>`<div><b>${c(s)}</b><span>${ST[s]}</span></div>`).join("")}</div>${DEMO.slice(0,4).map(a=>`<div class="item">${logo(a.companyName)}<div class="g"><b>${esc(a.companyName)}</b><span class="mut">${esc(a.role)}</span></div>${badge(a.status)}</div>`).join("")}</div>`}
 function landing(){const F=[["brief","Application tracking","Keep every role, link and note in one searchable place."],["kan","Visual pipeline","Drag applications from Saved all the way to Offer."],["clock","Smart reminders","Never miss a deadline or a follow-up."],["cal","Calendar","Deadlines, assessments and interviews together."],["chart","Analytics","See conversion rates from your real data."]];
 return`<nav class="pn"><div class="pw row between">${logoH}<div class="row" style="gap:4px">${themeToggle()}<a href="#" data-act="scroll" data-s="features">Features</a><a href="#" data-act="scroll" data-s="how">How It Works</a><button class="btn" data-act="route" data-r="login">Sign In</button></div></div></nav>
 <section class="pw hero"><div><h1>Your Internship Journey, All in One Place.</h1><p>Manage applications, deadlines, interviews and offers without spreadsheets or lost emails.</p><div class="row"><button class="btn p big" data-act="route" data-r="register">Get Started Free</button><button class="btn big" data-act="demo">Explore Dashboard</button></div></div>${prev()}</section>
 <section class="pw" id="features"><h2>Everything you need to land the offer</h2><div class="fgrid">${F.map(f=>`<div class="card pad"><div style="background:var(--bs);color:var(--blue);width:38px;height:38px;border-radius:10px;display:grid;place-items:center">${ic(f[0])}</div><h3>${f[1]}</h3><p class="mut">${f[2]}</p></div>`).join("")}</div></section>
 <section class="pw" id="how"><h2>How it works</h2><div class="fgrid three">${[["1","Add your applications","Save roles you’re eyeing or have already applied to."],["2","Track every stage","Move cards through the pipeline as things progress."],["3","Act on what’s next","Follow deadlines and next actions from your dashboard."]].map(s=>`<div class="card pad"><span class="lg" style="background:var(--blue)">${s[0]}</span><h3>${s[1]}</h3><p class="mut">${s[2]}</p></div>`).join("")}</div></section>
 <section class="pw"><div class="card pad cta"><h2>Ready to organize your search?</h2><button class="btn p big" data-act="route" data-r="register">Get Started Free</button></div></section>
-<footer class="pw pf"><span>© 2026 InternTrack</span><span class="mut">Prototype: backend not connected</span></footer>`}
+<footer class="pw pf"><span>© 2026 InternTrack</span><span class="mut">Prototype: sign-in screens are demo only</span></footer>`}
 const RT=(r,t)=>`<a href="#" data-act="route" data-r="${r}">${t}</a>`;
-const AU={login:{t:"Welcome back.",b:"Sign In",f:[["email","Email","email"],["password","Password","password"]],x:`<div class="row between" style="margin-bottom:14px"><label style="font-weight:400;margin:0"><input type="checkbox" name="remember" style="width:auto"> Remember me</label>${RT("forgot","Forgot password?")}</div>`,l:`New here? ${RT("register","Create an account")}`},
+const AU={login:{t:"Welcome back.",b:"Sign In",f:[["email","Email","email"],["password","Password","password"]],x:`<div style="text-align:right;margin-bottom:14px">${RT("forgot","Forgot password?")}</div>`,l:`New here? ${RT("register","Create an account")}`},
 register:{t:"Start organizing your internship journey.",b:"Create Account",f:[["name","Full name","text"],["email","Email","email"],["password","Password","password"],["confirm","Confirm password","password"]],x:`<label style="font-weight:400"><input type="checkbox" name="terms" style="width:auto"> I accept the Terms and Privacy Policy</label><div class="err" data-e="terms"></div><div style="height:12px"></div>`,l:`Already have an account? ${RT("login","Sign in")}`},
 forgot:{t:"Forgot your password?",b:"Send reset link",f:[["email","Email","email"]],l:RT("login","Back to sign in")},
 reset:{t:"Set a new password",b:"Update password",f:[["password","New password","password"],["confirm","Confirm password","password"]],l:RT("login","Back to sign in")}};
-function authv(r){const c=AU[r];return`<div class="split"><div class="sl"><div><div class="row between">${logoH}${themeToggle()}</div><form data-auth="${r}" novalidate><h1>${c.t}</h1><div class="err box" data-e="form"></div>${c.f.map(f=>`<div class="f"><label>${f[1]}</label><div class="pwr"><input name="${f[0]}" type="${f[2]}">${f[2]=="password"?`<button type="button" class="ib" data-act="eye" tabindex="-1" aria-label="Show or hide password">${ic("eye")}</button>`:""}</div><div class="err" data-e="${f[0]}"></div></div>`).join("")}${c.x||""}<button class="btn p big" style="width:100%;justify-content:center;margin-top:6px">${c.b}</button><p class="mut" style="text-align:center">${c.l}</p><p class="mut" style="font-size:11px;text-align:center">Prototype: no backend is connected, so nothing is sent, checked or stored.</p></form></div></div><div class="sr">${prev()}</div></div>`}
+function authv(r){const c=AU[r];return`<div class="split"><div class="sl"><div><div class="row between">${logoH}${themeToggle()}</div><form data-auth="${r}" novalidate><h1>${c.t}</h1><div class="warn" role="note"><b>Prototype screen.</b> This is not real authentication. Nothing you type here is sent, checked or stored.</div><div class="err box" data-e="form"></div>${c.f.map(f=>`<div class="f"><label>${f[1]}</label><div class="pwr"><input name="${f[0]}" type="${f[2]}">${f[2]=="password"?`<button type="button" class="ib" data-act="eye" tabindex="-1" aria-label="Show or hide password">${ic("eye")}</button>`:""}</div><div class="err" data-e="${f[0]}"></div></div>`).join("")}${c.x||""}<button class="btn p big" style="width:100%;justify-content:center;margin-top:6px">${c.b}</button><p class="mut" style="text-align:center">${c.l}</p></form></div></div><div class="sr">${prev()}</div></div>`}
 function onboard(){const s=S.obs,B=(w,t,c="")=>`<button class="btn ${c}" data-act="ob" data-w="${w}">${t}</button>`,I=(l,p)=>`<div class="f" style="margin-bottom:10px"><label>${l}</label><input placeholder="${p}"></div>`;
  const body=[`<h2>Welcome to InternTrack</h2><p class="mut">Let’s set up your tracker in under a minute.</p>`,`<h2>What are you looking for?</h2><p class="mut">All optional. Skip anything you like.</p>${I("Target roles","e.g. Software, Data Analyst")}${I("Preferred locations","e.g. Bengaluru, Remote")}${I("Interests","e.g. Cloud, AI, Frontend")}`,`<h2>How would you like to start?</h2><div class="row" style="margin-top:14px">${B("add","Add an existing application")}${B("empty","Start with an empty tracker")}</div>`,`<h2>Quick tour</h2><ul class="mut"><li>Dashboard: stats, deadlines and next actions.</li><li>Pipeline: drag cards between stages.</li><li>My Applications: search, filter and edit.</li></ul>`][s];
  return`<div class="ob"><div class="card obc"><div class="row between"><div class="dots" style="flex:1;margin-right:12px">${[0,1,2,3].map(i=>`<i class="${i<=s?"on":""}"></i>`).join("")}</div>${themeToggle()}</div>${body}<div class="row between" style="margin-top:24px">${B("skip","Skip")}<div class="row">${s>0?B("back","Back"):""}${s<2?B("next","Next","p"):s==3?B("fin","Go to dashboard","p"):""}</div></div></div></div>`}
 function pub(){const r=S.route;return`<div class="pub">${r=="landing"?landing():r=="onboard"?onboard():authv(r)}</div>`}
-async function authApi(k,d){if(!API_BASE_URL){await wait(600);return}const r=await fetch(API_BASE_URL+"/auth/"+k,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)});if(!r.ok)throw new Error(r.status==401?"Incorrect email or password.":"Request failed ("+r.status+")")}
-async function auth(k,form){const d=Object.fromEntries(new FormData(form)),e={};
- if(k=="register"&&!d.name.trim())e.name="Enter your full name.";
- if(k!="reset"&&!/^\S+@\S+\.\S+$/.test(d.email||""))e.email="Enter a valid email address.";
- if(k!="forgot"&&(d.password||"").length<(k=="login"?1:8))e.password=k=="login"?"Enter your password.":"Use at least 8 characters.";
- if((k=="register"||k=="reset")&&d.confirm!==d.password)e.confirm="Passwords don’t match.";
- if(k=="register"&&!d.terms)e.terms="Please accept the terms to continue.";
- form.querySelectorAll("[data-e]").forEach(n=>n.textContent=e[n.dataset.e]||"");
- if(Object.keys(e).length)return;
- const b=form.querySelector(".btn.p");b.disabled=true;b.textContent="Please wait…";
- try{await authApi(k,d);if(!API_BASE_URL)toast("Demo mode: nothing was sent or stored");
-  if(k=="login"){S.route="app";S.page="dash"}else if(k=="register"){S.obs=0;S.route="onboard"}else if(k=="reset")S.route="login";else if(!API_BASE_URL)S.route="reset";else toast("Check your inbox for a reset link");
-  render()}catch(x){form.querySelector("[data-e=form]").textContent=x.message;b.disabled=false;b.textContent=AU[k].b}}
+// PROTOTYPE ONLY: validates the form locally. Nothing is sent over the network or stored, and passwords are never kept.
+function auth(k,form){const d=Object.fromEntries(new FormData(form)),e={};
+  if(k=="register"&&!d.name.trim())e.name="Enter your full name.";
+  if(k!="reset"&&!/^\S+@\S+\.\S+$/.test(d.email||""))e.email="Enter a valid email address.";
+  if(k!="forgot"&&(d.password||"").length<(k=="login"?1:8))e.password=k=="login"?"Enter your password.":"Use at least 8 characters.";
+  if((k=="register"||k=="reset")&&d.confirm!==d.password)e.confirm="Passwords don’t match.";
+  if(k=="register"&&!d.terms)e.terms="Please accept the terms to continue.";
+  form.querySelectorAll("[data-e]").forEach(n=>n.textContent=e[n.dataset.e]||"");
+  if(Object.keys(e).length)return;
+  toast("Prototype only: nothing was sent, checked or stored.");
+  if(k=="login"){S.route="app";S.page="dash"}else if(k=="register"){S.obs=0;S.route="onboard"}else if(k=="reset")S.route="login";else S.route="reset";
+  enter()}
 // ---------- events ----------
-async function save(id,form){const d=Object.fromEntries(new FormData(form));const err={};
- if(!d.companyName.trim())err.companyName="Company name is required.";if(!d.role.trim())err.role="Job role is required.";
- if(d.jobUrl&&!/^https?:\/\/.+\..+/.test(d.jobUrl))err.jobUrl="Enter a valid URL starting with http(s)://";
- const dup=d.jobUrl&&S.apps.find(a=>a.jobUrl===d.jobUrl&&a.id!==id);
- if(dup&&!S.modal.confirmDup){err.dup=`This link already exists (${esc(dup.companyName)} — ${esc(dup.role)}). Press Save again to add it anyway.`;S.modal.confirmDup=true}
- if(Object.keys(err).length){S.modal={...S.modal,data:{...(S.modal.data||{}),...d},err};return render()}
- try{if(id){await svc.updateApplication(id,d);logAct("Updated "+d.companyName)}else{await svc.createApplication({...d,nextActionDone:false});logAct("Added "+d.companyName+" to "+ST[d.status])}
-  S.apps=await svc.getApplications();S.modal=null;toast("Application saved");render()}catch(e){toast("Save failed: "+e.message)}}
+async function save(id,form){if(S.busy)return;
+  const d=Object.fromEntries(new FormData(form));const err={};
+  if(!d.companyName.trim())err.companyName="Company name is required.";if(!d.role.trim())err.role="Job role is required.";
+  if(d.jobUrl&&!/^https?:\/\/.+\..+/.test(d.jobUrl))err.jobUrl="Enter a valid URL starting with http(s)://";
+  const dup=d.jobUrl&&S.apps.find(a=>a.jobUrl===d.jobUrl&&a.id!==id);
+  if(dup&&!S.modal.confirmDup){err.dup=`This link already exists (${esc(dup.companyName)} — ${esc(dup.role)}). Press Save again to add it anyway.`;S.modal.confirmDup=true}
+  const merged={...(S.modal.data||{}),...d};
+  if(Object.keys(err).length){S.modal={...S.modal,data:merged,err};return render()}
+  S.modal={...S.modal,data:merged,err:{}};
+  const old=id?S.apps.find(a=>a.id==id):null;
+  const r=await mutate("save",()=>id?svc.updateApplication(id,{...old,...d}):svc.createApplication(d),{ok:"Application saved",fail:"Save failed",which:"apps",done:()=>{S.modal=null}});
+  if(!r.ok&&S.modal){const fe={};if(r.details&&typeof r.details=="object")for(const[k,v]of Object.entries(r.details))if(typeof v=="string")fe[k=="company"?"companyName":k]=v;S.modal={...S.modal,err:{...fe,form:r.error}};render()}}
+async function saveTask(id,form){if(S.busy)return;
+  const d=Object.fromEntries(new FormData(form));const err={};
+  if(!d.title.trim())err.title="Title is required.";
+  const merged={...(S.modal.data||{}),...d};
+  if(Object.keys(err).length){S.modal={...S.modal,data:merged,err};return render()}
+  S.modal={...S.modal,data:merged,err:{}};
+  const old=id?S.tasks.find(k=>k.id==id):null;
+  const r=await mutate("tsave",()=>id?svc.updateTask(id,{...old,...d}):svc.createTask({...d,status:d.status||TASK_STATUS.open}),{ok:"Task saved",fail:"Save failed",which:"tasks",done:()=>{S.modal=null}});
+  if(!r.ok&&S.modal){const fe={};if(r.details&&typeof r.details=="object")for(const[k,v]of Object.entries(r.details))if(typeof v=="string")fe[k]=v;S.modal={...S.modal,err:{...fe,form:r.error}};render()}}
 document.addEventListener("click",async e=>{
- const t=e.target.closest("[data-act]");if(!t){if(S.menu){S.menu=null;render()}return}
- const act=t.dataset.act,id=t.dataset.id;
- if(act=="closeov"&&e.target!==t&&!e.target.closest("button[data-act=closeov]"))return;
- if(act=="task")return;if(act=="eye"){const i=t.previousElementSibling;i.type=i.type=="password"?"text":"password";return}
- e.target.closest("a")&&e.preventDefault();
- if(act=="go"){S.page=t.dataset.p;S.nav=false;S.menu=null;S.open=null;S.pg=1}
- else if(act=="nav")S.nav=!S.nav;else if(act=="collapse")S.col=!S.col;else if(act=="route"){S.route=t.dataset.r;scrollTo(0,0)}else if(act=="demo"){S.route="app";S.page="dash"}else if(act=="scroll"){document.getElementById(t.dataset.s)?.scrollIntoView({behavior:"smooth"});return}else if(act=="ob"){const w=t.dataset.w;if(w=="back")S.obs--;else if(w=="next")S.obs++;else if(w=="skip"){S.route="app";S.page="dash"}else if(w=="add"||w=="empty"){S.obw=w;S.obs=3}else if(w=="fin"){S.route="app";S.page="dash";if(S.obw=="empty"){db=[];S.apps=[]}if(S.obw=="add")S.modal={type:"form"}}}else if(act=="navx")S.nav=false;
- else if(act=="menu")S.menu=S.menu==t.dataset.m?null:t.dataset.m;
- else if(act=="theme"){Theme.toggle();S.menu=null}
- else if(act=="theme-choice")Theme.set(t.dataset.themeChoice);
- else if(act=="add")S.modal={type:"form"};
- else if(act=="edit")S.modal={type:"form",data:S.apps.find(a=>a.id==id)};
- else if(act=="del")S.modal={type:"del",data:S.apps.find(a=>a.id==id)};
- else if(act=="delok"){try{const a=S.apps.find(x=>x.id==id);await svc.deleteApplication(id);S.apps=await svc.getApplications();logAct("Deleted "+a.companyName);S.modal=null;S.open=null;toast("Application deleted")}catch(x){toast("Delete failed: "+x.message)}}
- else if(act=="open"){S.open=id;S.menu=null}
- else if(act=="closeov"){S.modal?S.modal=null:S.open=null}
- else if(act=="view"){S.view=t.dataset.v}
- else if(act=="pg")S.pg+=+t.dataset.d;
- else if(act=="clear"){S.q="";S.fs=S.fd=S.fl="all"}
- else if(act=="retry")return load();
- render()});
+  const t=e.target.closest("[data-act]");if(!t){if(S.menu){S.menu=null;render()}return}
+  const act=t.dataset.act,id=t.dataset.id;
+  if(act=="open"&&t.tagName=="TR"&&e.target.closest("[data-noopen]"))return; // blank space in the row-actions cell should not open the row
+  if(act=="closeov"&&e.target!==t&&!e.target.closest("button[data-act=closeov]"))return;
+  if(act=="task")return;if(act=="eye"){const i=t.previousElementSibling;i.type=i.type=="password"?"text":"password";return}
+  e.target.closest("a")&&e.preventDefault();
+  if(act=="go"){S.page=t.dataset.p;S.nav=false;S.menu=null;S.open=null;S.pg=1}
+  else if(act=="nav")S.nav=!S.nav;else if(act=="collapse")S.col=!S.col;else if(act=="route"){S.route=t.dataset.r;scrollTo(0,0)}else if(act=="demo"){S.route="app";S.page="dash"}else if(act=="scroll"){document.getElementById(t.dataset.s)?.scrollIntoView({behavior:"smooth"});return}else if(act=="ob"){const w=t.dataset.w;if(w=="back")S.obs--;else if(w=="next")S.obs++;else if(w=="skip"){S.route="app";S.page="dash"}else if(w=="add"||w=="empty"){S.obw=w;S.obs=3}else if(w=="fin"){S.route="app";S.page="dash";if(S.obw=="add")S.modal={type:"form"}}}else if(act=="navx")S.nav=false;
+  else if(act=="menu")S.menu=S.menu==t.dataset.m?null:t.dataset.m;
+  else if(act=="theme"){Theme.toggle();S.menu=null}
+  else if(act=="theme-choice")Theme.set(t.dataset.themeChoice);
+  else if(act=="add")S.modal={type:"form"};
+  else if(act=="edit")S.modal={type:"form",data:S.apps.find(a=>a.id==id)};
+  else if(act=="del")S.modal={type:"del",data:S.apps.find(a=>a.id==id)};
+  else if(act=="delok"){await mutate("del:"+id,()=>svc.deleteApplication(id),{ok:"Application deleted",fail:"Delete failed",which:"both",done:()=>{S.modal=null;S.open=null}})}
+  else if(act=="addtask")S.modal={type:"task",data:id?{applicationId:id}:undefined};
+  else if(act=="edittask"){const k=S.tasks.find(x=>x.id==id);if(k)S.modal={type:"task",data:k}}
+  else if(act=="deltask"){const k=S.tasks.find(x=>x.id==id);if(k)S.modal={type:"tdel",data:k}}
+  else if(act=="tdelok"){await mutate("tdel:"+id,()=>svc.deleteTask(id),{ok:"Task deleted",fail:"Delete failed",which:"tasks",done:()=>{S.modal=null}})}
+  else if(act=="open"){S.open=id;S.menu=null}
+  else if(act=="closeov"){S.modal?S.modal=null:S.open=null}
+  else if(act=="view"){S.view=t.dataset.v}
+  else if(act=="pg")S.pg+=+t.dataset.d;
+  else if(act=="clear"){S.q="";S.fs=S.fd=S.fl="all"}
+  else if(act=="retry")return load();
+  enter()});
 document.addEventListener("change",async e=>{const t=e.target;
- if(t.dataset.act=="task"){const a=S.apps.find(x=>x.id==t.dataset.id);await svc.updateApplication(a.id,{nextActionDone:t.checked});a.nextActionDone=t.checked;if(t.checked){logAct("Completed: "+a.nextAction);toast("Task completed")}render()}
- else if(t.dataset.act=="status"){const a=S.apps.find(x=>x.id==t.dataset.id);await svc.updateApplication(a.id,{status:t.value,dateApplied:a.dateApplied||(t.value!="saved"?day(0):"")});a.status=t.value;logAct(`Moved ${a.companyName} to ${ST[t.value]}`);S.apps=await svc.getApplications();toast("Status updated");render()}});
+  if(t.dataset.act=="task"){const k=S.tasks.find(x=>x.id==t.dataset.id);if(!k)return;const done=t.checked;
+   await mutate("task:"+k.id,()=>svc.updateTask(k.id,{...k,status:done?TASK_STATUS.done:TASK_STATUS.open}),{ok:done?"Task completed":"Task reopened",fail:"Couldn’t update task",which:"tasks"})}
+  else if(t.dataset.act=="status"){const a=S.apps.find(x=>x.id==t.dataset.id);if(!a)return;const v=t.value;
+   await mutate("status:"+a.id,()=>svc.updateApplication(a.id,{...a,status:v,dateApplied:a.dateApplied||(v!="saved"?day(0):"")}),{ok:"Status updated",fail:"Couldn’t update status",which:"apps"})}});
 document.addEventListener("input",e=>{const k=e.target.dataset.in;if(!k)return;S[k]=e.target.value;if(k=="gq"){S.q=e.target.value;if(S.page!="apps"&&S.page!="dash")S.page="apps"}S.pg=1;render()});
-document.addEventListener("submit",e=>{e.preventDefault();const k=e.target.dataset.auth;if(k)auth(k,e.target);else save(e.target.dataset.form,e.target)});
+document.addEventListener("submit",e=>{e.preventDefault();const f=e.target,k=f.dataset.auth;if(k)auth(k,f);else if("tform" in f.dataset)saveTask(f.dataset.tform,f);else save(f.dataset.form,f)});
 let dragId=null;
 document.addEventListener("dragstart",e=>{dragId=e.target.closest?.("[data-drag]")?.dataset.drag});
 document.addEventListener("dragover",e=>{const c=e.target.closest?.("[data-drop]");if(c){e.preventDefault();c.classList.add("over")}});
 document.addEventListener("dragleave",e=>e.target.closest?.("[data-drop]")?.classList.remove("over"));
-document.addEventListener("drop",async e=>{const c=e.target.closest?.("[data-drop]");if(!c||!dragId)return;e.preventDefault();const a=S.apps.find(x=>x.id==dragId),s=c.dataset.drop;if(a.status!=s){await svc.updateApplication(a.id,{status:s,dateApplied:a.dateApplied||(s!="saved"?day(0):"")});S.apps=await svc.getApplications();logAct(`Moved ${a.companyName} to ${ST[s]}`);toast(`Moved to ${ST[s]}`)}dragId=null;render()});
-load();
+document.addEventListener("drop",async e=>{const c=e.target.closest?.("[data-drop]");if(!c||!dragId)return;e.preventDefault();c.classList.remove("over");
+  const a=S.apps.find(x=>x.id==dragId),s=c.dataset.drop;dragId=null;if(!a||a.status==s)return render();
+  await mutate("status:"+a.id,()=>svc.updateApplication(a.id,{...a,status:s,dateApplied:a.dateApplied||(s!="saved"?day(0):"")}),{ok:"Moved to "+ST[s],fail:"Couldn’t move application",which:"apps"})});
+render(); // landing page first; API data loads only after entering the app
 </script></body></html>
