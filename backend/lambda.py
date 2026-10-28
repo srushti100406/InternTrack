@@ -15,6 +15,20 @@ logger.setLevel(logging.INFO)
 dynamodb = boto3.resource("dynamodb")
 applications_table = dynamodb.Table(os.environ["APPLICATIONS_TABLE"])
 tasks_table = dynamodb.Table(os.environ["TASKS_TABLE"])
+resumes_table = dynamodb.Table(os.environ["RESUMES_TABLE"])
+s3_client = boto3.client(
+    "s3",
+    region_name="ap-southeast-2",
+    endpoint_url="https://s3.ap-southeast-2.amazonaws.com"
+)
+resume_bucket = os.environ["RESUME_BUCKET"]
+PRESIGNED_URL_EXPIRY = 300
+RESUME_MAX_SIZE_BYTES = int(os.environ.get("RESUME_MAX_SIZE_BYTES", 5 * 1024 * 1024))
+RESUME_PENDING_TTL_SECONDS = 7 * 24 * 60 * 60
+RESUME_CONTENT_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+}
 
 ALLOWED_STATUSES = {
     "Saved", "Applied", "Assessment", "Interview",
@@ -311,6 +325,285 @@ def handle_tasks(method, task_id, user_id, event):
     return response(404, {"error": "Route not found"})
 
 
+def handle_resumes(method, resume_id, user_id, event):
+    if method == "GET" and resume_id is None:
+        result = resumes_table.query(
+            KeyConditionExpression=Key("userId").eq(user_id)
+        )
+        items = result.get("Items", [])
+        while result.get("LastEvaluatedKey"):
+            result = resumes_table.query(
+                KeyConditionExpression=Key("userId").eq(user_id),
+                ExclusiveStartKey=result["LastEvaluatedKey"]
+            )
+            items.extend(result.get("Items", []))
+        return response(200, {"resumes": items})
+
+    if method == "POST" and resume_id is None:
+        body = parse_body(event)
+        if not isinstance(body, dict):
+            return response(400, {"error": "Body must be a JSON object"})
+
+        role_category = body.get("roleCategory")
+        file_name = body.get("fileName")
+        content_type = body.get("contentType")
+        file_size = body.get("fileSize")
+        if not isinstance(role_category, str) or not role_category.strip():
+            return response(400, {"error": "roleCategory is required"})
+        if not isinstance(file_name, str) or not file_name.strip():
+            return response(400, {"error": "fileName is required"})
+        expected_content_type = RESUME_CONTENT_TYPES.get(
+            os.path.splitext(file_name.strip())[1].lower()
+        )
+        if not expected_content_type or content_type != expected_content_type:
+            return response(400, {"error": "Only PDF and DOCX resumes are supported"})
+        if (not isinstance(file_size, int) or isinstance(file_size, bool)
+                or file_size <= 0 or file_size > RESUME_MAX_SIZE_BYTES):
+            return response(400, {
+                "error": f"fileSize must be between 1 and {RESUME_MAX_SIZE_BYTES} bytes"
+            })
+
+        now = datetime.now(timezone.utc).isoformat()
+        generated_id = str(uuid.uuid4())
+        item = {
+            "userId": user_id,
+            "resumeId": generated_id,
+            "roleCategory": role_category.strip(),
+            "fileName": file_name.strip(),
+            "contentType": content_type,
+            "fileSize": file_size,
+            "s3Key": f"resumes/pending/{generated_id}",
+            "createdAt": now,
+            "updatedAt": now,
+            "uploadStatus": "pending",
+            "expiresAt": int(datetime.now(timezone.utc).timestamp())
+            + RESUME_PENDING_TTL_SECONDS
+        }
+        try:
+            upload_url = s3_client.generate_presigned_url(
+                "put_object",
+                Params={
+                    "Bucket": resume_bucket,
+                    "Key": item["s3Key"],
+                    "ContentType": content_type
+                },
+                ExpiresIn=PRESIGNED_URL_EXPIRY
+            )
+        except ClientError:
+            logger.exception("Could not create resume upload URL")
+            return response(500, {"error": "Resume storage operation failed"})
+
+        resumes_table.put_item(
+            Item=item,
+            ConditionExpression="attribute_not_exists(resumeId)"
+        )
+        logger.info("Created resume metadata %s", generated_id)
+        return response(201, {
+            "resume": item,
+            "uploadUrl": upload_url,
+            "uploadUrlExpiresIn": PRESIGNED_URL_EXPIRY
+        })
+
+    if method == "GET" and resume_id:
+        result = resumes_table.get_item(
+            Key={"userId": user_id, "resumeId": resume_id}
+        )
+        item = result.get("Item")
+        if not item:
+            return response(404, {"error": "Resume not found"})
+        if item.get("uploadStatus") != "uploaded":
+            return response(409, {"error": "Resume upload has not been verified"})
+        try:
+            download_url = s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": resume_bucket, "Key": item["s3Key"]},
+                ExpiresIn=PRESIGNED_URL_EXPIRY
+            )
+        except ClientError:
+            logger.exception("Could not create resume download URL")
+            return response(500, {"error": "Resume storage operation failed"})
+        return response(200, {
+            "resume": item,
+            "downloadUrl": download_url,
+            "downloadUrlExpiresIn": PRESIGNED_URL_EXPIRY
+        })
+
+    if method == "POST" and resume_id:
+        body = parse_body(event)
+        if not isinstance(body, dict) or body.get("action") != "complete":
+            return response(400, {"error": "action must be 'complete'"})
+
+        result = resumes_table.get_item(
+            Key={"userId": user_id, "resumeId": resume_id}
+        )
+        item = result.get("Item")
+        if not item:
+            return response(404, {"error": "Resume not found"})
+        if item.get("uploadStatus") == "uploaded":
+            return response(200, {"resume": item})
+        if item.get("uploadStatus") != "pending":
+            return response(409, {"error": "Resume upload is not pending"})
+
+        try:
+            uploaded = s3_client.head_object(
+                Bucket=resume_bucket,
+                Key=item["s3Key"]
+            )
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code", "")
+            if code in {"404", "NoSuchKey", "NotFound"}:
+                return response(409, {"error": "Resume upload was not found in storage"})
+            logger.exception("Could not verify resume upload")
+            return response(500, {"error": "Resume storage operation failed"})
+
+        if (uploaded.get("ContentLength") != item.get("fileSize")
+                or uploaded.get("ContentLength", 0) > RESUME_MAX_SIZE_BYTES
+                or uploaded.get("ContentType") != item.get("contentType")):
+            return response(400, {
+                "error": "Uploaded file type or size does not match the declared resume"
+            })
+
+        completed_key = f"resumes/{resume_id}"
+        try:
+            s3_client.copy_object(
+                Bucket=resume_bucket,
+                Key=completed_key,
+                CopySource={"Bucket": resume_bucket, "Key": item["s3Key"]}
+            )
+        except ClientError:
+            logger.exception("Could not finalize resume upload")
+            return response(500, {"error": "Resume storage operation failed"})
+
+        uploaded_at = datetime.now(timezone.utc).isoformat()
+        try:
+            result = resumes_table.update_item(
+                Key={"userId": user_id, "resumeId": resume_id},
+                UpdateExpression=(
+                    "SET uploadStatus = :uploaded, s3Key = :s3_key, "
+                    "uploadedAt = :uploaded_at, updatedAt = :updated_at "
+                    "REMOVE expiresAt"
+                ),
+                ExpressionAttributeValues={
+                    ":uploaded": "uploaded",
+                    ":s3_key": completed_key,
+                    ":uploaded_at": uploaded_at,
+                    ":updated_at": uploaded_at,
+                    ":pending": "pending"
+                },
+                ConditionExpression="uploadStatus = :pending",
+                ReturnValues="ALL_NEW"
+            )
+        except ClientError:
+            try:
+                s3_client.delete_object(Bucket=resume_bucket, Key=completed_key)
+            except ClientError:
+                logger.exception("Could not clean up uncommitted resume object")
+            raise
+
+        try:
+            s3_client.delete_object(Bucket=resume_bucket, Key=item["s3Key"])
+        except ClientError:
+            logger.exception("Could not clean up temporary resume object")
+            return response(500, {
+                "error": "Resume was verified but temporary upload cleanup failed",
+                "resume": result["Attributes"]
+            })
+
+        logger.info("Verified resume upload %s", resume_id)
+        return response(200, {"resume": result["Attributes"]})
+
+    if method == "PUT" and resume_id:
+        body = parse_body(event)
+        if not isinstance(body, dict):
+            return response(400, {"error": "Body must be a JSON object"})
+
+        updates = {
+            key: body[key].strip()
+            for key in ("roleCategory", "fileName")
+            if key in body and isinstance(body[key], str) and body[key].strip()
+        }
+        for field in ("roleCategory", "fileName"):
+            if field in body and field not in updates:
+                return response(400, {"error": f"{field} cannot be empty"})
+        if not updates:
+            return response(400, {"error": "No editable resume fields provided"})
+
+        existing_result = resumes_table.get_item(
+            Key={"userId": user_id, "resumeId": resume_id}
+        )
+        existing = existing_result.get("Item")
+        if not existing:
+            return response(404, {"error": "Resume not found"})
+        if "fileName" in updates:
+            expected_content_type = RESUME_CONTENT_TYPES.get(
+                os.path.splitext(updates["fileName"])[1].lower()
+            )
+            if expected_content_type != existing.get("contentType"):
+                return response(400, {
+                    "error": "Resume file extension cannot be changed to another file type"
+                })
+
+        updates["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        expression_names = {f"#f{i}": field for i, field in enumerate(updates)}
+        expression_values = {f":v{i}": value for i, value in enumerate(updates.values())}
+        update_expression = "SET " + ", ".join(
+            f"#f{i} = :v{i}" for i in range(len(updates))
+        )
+        result = resumes_table.update_item(
+            Key={"userId": user_id, "resumeId": resume_id},
+            UpdateExpression=update_expression,
+            ExpressionAttributeNames=expression_names,
+            ExpressionAttributeValues=expression_values,
+            ConditionExpression="attribute_exists(resumeId)",
+            ReturnValues="ALL_NEW"
+        )
+        item = result["Attributes"]
+        if item.get("uploadStatus") == "pending":
+            try:
+                upload_url = s3_client.generate_presigned_url(
+                    "put_object",
+                    Params={
+                        "Bucket": resume_bucket,
+                        "Key": item["s3Key"],
+                        "ContentType": item["contentType"]
+                    },
+                    ExpiresIn=PRESIGNED_URL_EXPIRY
+                )
+            except ClientError:
+                logger.exception("Could not create resume upload URL")
+                return response(500, {"error": "Resume storage operation failed"})
+            return response(200, {
+                "resume": item,
+                "uploadUrl": upload_url,
+                "uploadUrlExpiresIn": PRESIGNED_URL_EXPIRY
+            })
+        logger.info("Updated resume metadata %s", resume_id)
+        return response(200, {"resume": item})
+
+    if method == "DELETE" and resume_id:
+        result = resumes_table.get_item(
+            Key={"userId": user_id, "resumeId": resume_id}
+        )
+        item = result.get("Item")
+        if not item:
+            return response(404, {"error": "Resume not found"})
+
+        resumes_table.delete_item(
+            Key={"userId": user_id, "resumeId": resume_id},
+            ConditionExpression="attribute_exists(resumeId)"
+        )
+        try:
+            s3_client.delete_object(Bucket=resume_bucket, Key=item["s3Key"])
+        except ClientError:
+            logger.exception("Could not delete resume from object storage")
+            return response(500, {"error": "Resume storage operation failed"})
+
+        logger.info("Deleted resume %s", resume_id)
+        return response(200, {"message": "Resume deleted"})
+
+    return response(404, {"error": "Route not found"})
+
+
 def lambda_handler(event, context):
     method = get_method(event)
     path = get_path(event)
@@ -330,7 +623,7 @@ def lambda_handler(event, context):
         if resource == "tasks":
             return handle_tasks(method, resource_id, user_id, event)
         if resource == "resumes":
-            return response(501, {"error": "Resume functionality is not implemented yet"})
+            return handle_resumes(method, resource_id, user_id, event)
         return response(404, {"error": "Route not found"})
 
     except json.JSONDecodeError:
