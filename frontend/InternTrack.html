@@ -45,8 +45,13 @@ input,select,textarea{background:var(--card);border:1px solid var(--line);border
 #toast{position:fixed;bottom:20px;right:20px;z-index:99;display:grid;gap:8px}.t{background:var(--ink);color:var(--card);padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .tl{list-style:none;margin:8px 0;padding:0}.tl li{position:relative;padding:0 0 16px 26px;color:var(--mut)}.tl li:before{content:"";position:absolute;left:4px;top:4px;width:11px;height:11px;border-radius:50%;border:2px solid var(--line);background:var(--card)}.tl li:after{content:"";position:absolute;left:9px;top:16px;bottom:0;width:2px;background:var(--line)}.tl li:last-child:after{display:none}.tl li.d{color:var(--ink)}.tl li.d:before{background:var(--green);border-color:var(--green)}.tl li.c{color:var(--ink);font-weight:600}.tl li.c:before{background:var(--blue);border-color:var(--blue)}.tl li.x:before{background:var(--red);border-color:var(--red)}
 .back{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25}
+.calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start;margin-top:18px}.calendar-card{padding:16px;min-width:0}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.calendar-weekday{text-align:center;padding:8px 2px;color:var(--mut);font-size:11px;font-weight:600}.cal-day{position:relative;min-height:74px;padding:8px 6px;border:1px solid var(--line);border-radius:8px;background:var(--card);text-align:left;align-self:stretch}.cal-day:hover{background:var(--bg)}.cal-day.outside{visibility:hidden}.cal-day.today{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}.cal-day.selected{background:var(--bs);color:var(--blue)}.cal-day.overdue{border-color:var(--red)}.cal-daynum{font-weight:600}.cal-dots{display:flex;gap:4px;margin-top:9px}.cal-dot{width:7px;height:7px;border-radius:50%;background:var(--blue)}.cal-dot.deadline{background:var(--red)}.cal-dot.task{background:var(--blue)}.cal-dot.interview{background:var(--purple)}.cal-dot.assessment{background:var(--amber)}.calendar-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;color:var(--mut);font-size:12px}.calendar-legend span{display:inline-flex;gap:6px;align-items:center}.calendar-day-list{display:grid;gap:8px}.calendar-event{width:100%;padding:10px;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:8px;background:var(--card);text-align:left}.calendar-event.deadline{border-left-color:var(--red)}.calendar-event.interview{border-left-color:var(--purple)}.calendar-event.assessment{border-left-color:var(--amber)}.calendar-event.selected{background:var(--bs)}.calendar-event b{display:block}.calendar-event .mut{display:block;margin-top:3px}.calendar-detail{padding:12px;margin-top:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}.notify-list{display:grid;gap:10px;margin-top:16px}.notification{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--card)}.notification.unread{border-left:3px solid var(--blue)}.notification-main{flex:1;min-width:0;cursor:pointer;border:0;background:none;text-align:left;color:inherit;font:inherit;padding:0}.notification-main b{display:block}.notification-main p{margin:4px 0;color:var(--mut);font-size:12px}.notification-actions{display:flex;align-items:center;gap:4px}.notify-badge{margin-left:auto;background:var(--blue);color:var(--blue-fg);border-radius:99px;min-width:20px;padding:1px 6px;text-align:center;font-size:11px;font-weight:700}.notify-filters{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}.notify-filters .btn.on{background:var(--bs);border-color:var(--blue);color:var(--blue)}.notify-count{color:var(--mut);font-size:12px}
+.resume-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-top:16px}.resume-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.resume-row:last-child{border:0}.resume-info{flex:1;min-width:0}.resume-info b{display:block;overflow-wrap:anywhere}.resume-actions{display:flex;gap:4px}.resume-help{color:var(--mut);font-size:12px;margin:8px 0 0}
+@media(max-width:700px){.resume-form{grid-template-columns:1fr}.resume-row{align-items:flex-start;flex-wrap:wrap}.resume-actions{width:100%;justify-content:flex-end}}
 @media(max-width:1100px){.two{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,1fr)}.tb{grid-template-columns:1fr 1fr}}
 @media(max-width:820px){aside{transform:translateX(-100%)}aside.open{transform:none}aside.open~.back{display:block}main{margin-left:0}#menu{display:grid}header{padding:10px 12px}.wrap{padding:16px 12px}.srch{display:none}.kan{grid-template-columns:repeat(5,240px)}.fg{grid-template-columns:1fr}.fg .w{grid-column:span 1}.hide-s{display:none}}
+@media(max-width:900px){.calendar-layout{grid-template-columns:1fr}.cal-day{min-height:62px;padding:6px 4px}.calendar-grid{gap:3px}}
+@media(max-width:560px){.calendar-card{padding:10px}.cal-day{min-height:48px;padding:5px 3px;font-size:12px}.cal-dots{gap:2px;margin-top:6px}.cal-dot{width:6px;height:6px}.notification{padding:10px}.notification-actions{flex-direction:column}}
 .pub{width:100%;background:var(--card)}.pw{max-width:1120px;margin:0 auto;padding:0 20px}.pn{border-bottom:1px solid var(--line);padding:14px 0;position:sticky;top:0;background:var(--card);z-index:10}.pn a{color:var(--mut);text-decoration:none;padding:0 8px;font-weight:500}.hero{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;padding:64px 20px}.hero>*{animation:up .5s both}@keyframes up{from{opacity:0;transform:translateY(8px)}}.hero h1{font-size:44px;line-height:1.1;margin:0 0 16px;letter-spacing:-.02em}.hero p{color:var(--mut);font-size:17px;margin:0 0 24px}.big{padding:11px 20px;font-size:15px}.pw h2{font-size:28px;margin:56px 0 20px}.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}.fgrid.three{grid-template-columns:repeat(3,1fr)}.fgrid h3{margin:12px 0 4px}.cta{text-align:center;padding:40px;background:var(--bs)}.cta h2{margin-top:0}.pf{display:flex;justify-content:space-between;padding:32px 20px;margin-top:56px;border-top:1px solid var(--line)}.pv{width:100%;max-width:480px;min-width:0}
 .split{display:grid;grid-template-columns:1fr 1fr;min-height:100vh}.sl{display:grid;place-items:center;padding:32px}.sl>div{width:100%;max-width:380px}.sl h1{font-size:26px;margin:28px 0 16px}.sl .f{margin-bottom:12px}.sl a{color:var(--blue)}.sr{background:var(--bg);display:grid;place-items:center;padding:32px;border-left:1px solid var(--line)}.pwr{position:relative}.pwr input{padding-right:40px}.pwr .ib{position:absolute;right:2px;top:1px}.err.box:empty{display:none}.err.box{background:var(--rs);padding:8px 10px;border-radius:8px;margin-bottom:12px}
 .theme-choice{display:flex;gap:8px;flex-wrap:wrap}.theme-choice .btn[aria-pressed="true"]{background:var(--bs);border-color:var(--blue);color:var(--blue)}.theme-control{flex:none}.muted-panel{background:var(--elevated);border-radius:8px;padding:12px}
@@ -74,6 +79,8 @@ const API_TIMEOUT_MS = 15000;
 const TASK_STATUS = {open:"Pending", progress:"In Progress", done:"Completed", cancelled:"Cancelled"};
 const TASK_STATUSES = [TASK_STATUS.open,TASK_STATUS.progress,TASK_STATUS.done,TASK_STATUS.cancelled];
 const TASK_TYPES = ["Follow-up","Assessment","Interview","Deadline","Other"];
+const RESUME_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const RESUME_CONTENT_TYPES = {".pdf":"application/pdf",".docx":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"};
 const day=o=>{const d=new Date();d.setDate(d.getDate()+o);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 // Sample data used ONLY by the landing/sign-in preview card. The dashboard never reads it.
 const DEMO=[["Google","Software Engineering Intern","interview"],["Microsoft","Frontend Developer Intern","assessment"],["Amazon Web Services","Cloud Engineering Intern","offer"],["Flipkart","Data Analyst Intern","applied"],["Razorpay","Frontend Developer Intern","saved"],["Atlassian","Software Engineering Intern","rejected"]].map(r=>({companyName:r[0],role:r[1],status:r[2]}));
@@ -124,7 +131,13 @@ const svc={
  async getTasks(){const r=unwrap(await api.get("/tasks"),["tasks","items","data"]);if(r.some(x=>!x.taskId))throw new ApiError("The Tasks API response is missing taskId on some records (the backend must map its taskKey to taskId).");return r.map(fromApiTask)},
  createTask:t=>api.post("/tasks",toApiTask(t)),
  updateTask:(id,t)=>api.put("/tasks/"+enc(id),toApiTask(t,true)),
- deleteTask:id=>api.del("/tasks/"+enc(id))
+ deleteTask:id=>api.del("/tasks/"+enc(id)),
+ async getResumes(){const r=unwrap(await api.get("/resumes"),["resumes"]);if(r.some(x=>!x.resumeId))throw new ApiError("The Resumes API response is missing resumeId on some records.");return r},
+ createResume:r=>api.post("/resumes",r),
+ updateResume:(id,r)=>api.put("/resumes/"+enc(id),r),
+ completeResume:id=>api.post("/resumes/"+enc(id),{action:"complete"}),
+ async getResume(id){return api.get("/resumes/"+enc(id))},
+ deleteResume:id=>api.del("/resumes/"+enc(id))
 };
 // ---------- helpers ----------
 const ST={saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",withdrawn:"Withdrawn"},PIPE=["saved","applied","assessment","interview","offer"],DONE=["offer","rejected","withdrawn"];
@@ -147,14 +160,20 @@ const taskDone=k=>/^(done|complete|completed|cancelled|canceled)$/i.test(k.statu
 const byDue=(a,b)=>(a.dueDate||"9999-12-31").localeCompare(b.dueDate||"9999-12-31");
 const appName=id=>{const a=S.apps.find(x=>x.id==id);return a?a.companyName:""};
 // ---------- state ----------
-const S={route:"landing",obs:0,obw:"",col:false,page:"dash",apps:[],tasks:[],loading:true,started:false,busy:null,error:"",tasksError:"",q:"",fs:"all",fd:"all",fl:"all",sort:"new",view:"table",gq:"",tq:"",fts:"all",open:null,modal:null,menu:null,nav:false,pg:1};
+const nowDate=new Date();
+const S={route:"landing",obs:0,obw:"",col:false,page:"dash",apps:[],tasks:[],resumes:[],loading:true,resumesLoading:false,started:false,busy:null,resumeBusy:false,resumeRetryId:null,resumeCategory:"",resumeError:"",resumesError:"",error:"",tasksError:"",q:"",fs:"all",fd:"all",fl:"all",sort:"new",view:"table",gq:"",tq:"",fts:"all",open:null,modal:null,menu:null,nav:false,pg:1,calendarMonth:new Date(nowDate.getFullYear(),nowDate.getMonth(),1),calendarDate:dateKey(nowDate),calendarEvent:null,notificationFilter:"all",readNotifications:new Set()};
 const $=s=>document.querySelector(s);
 const toast=(m,kind)=>{const e=document.createElement("div");e.className="t"+(kind?" e":"");e.textContent=m;$("#toast").append(e);setTimeout(()=>e.remove(),kind?6000:3000)};
+function dateKey(value){const key=value instanceof Date?`${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,"0")}-${String(value.getDate()).padStart(2,"0")}`:String(value??"").slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(key))return"";const d=new Date(key+"T00:00:00");return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")===key?key:""}
+const READ_NOTIFICATIONS_KEY="interntrack-notifications-read:"+DEV_USER_ID;
+try{const stored=JSON.parse(localStorage.getItem(READ_NOTIFICATIONS_KEY)||"[]");if(Array.isArray(stored))S.readNotifications=new Set(stored.filter(x=>typeof x=="string"))}catch(e){console.warn("Could not load notification read state from this browser.",e)}
+function persistNotificationReads(){try{localStorage.setItem(READ_NOTIFICATIONS_KEY,JSON.stringify([...S.readNotifications]));return true}catch(e){console.error("Could not save notification read state in this browser.",e);toast("Read status could not be saved on this device.","e");return false}}
 // Re-fetch from AWS. Never throws: failures are stored in S.error / S.tasksError.
 async function refresh(w="both"){const jobs=[];
  if(w!="tasks")jobs.push(svc.getApplications().then(r=>{S.apps=r;S.error=""},e=>{S.error=e.message}));
  if(w!="apps")jobs.push(svc.getTasks().then(r=>{S.tasks=r;S.tasksError=""},e=>{S.tasksError=e.message}));
  await Promise.all(jobs)}
+async function refreshResumes(){S.resumesLoading=true;render();try{S.resumes=await svc.getResumes();S.resumesError=""}catch(e){S.resumesError=e.message}finally{S.resumesLoading=false;render()}}
 // Run one write request: busy flag + progress bar, refresh from AWS on success, toast on success/failure.
 async function mutate(key,fn,o){
  if(S.busy){render();return{ok:false}}
@@ -162,7 +181,7 @@ async function mutate(key,fn,o){
  try{await fn();await refresh(o.which||"both");o.done?.();toast(o.ok);return{ok:true}}
  catch(e){toast(o.fail+": "+e.message,"e");return{ok:false,error:e.message,details:e.details}}
  finally{S.busy=null;render()}}
-async function load(){S.loading=true;S.error="";S.tasksError="";render();await refresh("both");S.loading=false;render()}
+async function load(){S.loading=true;S.error="";S.tasksError="";render();await Promise.all([refresh("both"),refreshResumes()]);S.loading=false;render()}
 // Data is only requested once the user actually enters the app (not on the landing page).
 function enter(){if(S.route=="app"&&!S.started){S.started=true;load()}else render()}
 function filtered(q,fs,fd,fl,sort){let r=S.apps.filter(a=>(a.companyName+" "+a.role).toLowerCase().includes(q.toLowerCase())&&(fs=="all"||a.status==fs)&&(fl=="all"||a.location==fl));
@@ -173,6 +192,13 @@ function filtered(q,fs,fd,fl,sort){let r=S.apps.filter(a=>(a.companyName+" "+a.r
 const skel=()=>`<div class="card pad">${'<div class="sk"></div>'.repeat(8)}</div>`;
 const errv=()=>`<div class="card empty"><b>Couldn’t load applications</b><p>${esc(S.error)}</p><button class="btn p" data-act="retry">Try again</button></div>`;
 const emptyv=(t,s)=>`<div class="empty">${ic("brief")}<div><b>${t}</b></div><p>${s}</p></div>`;
+const resumeFileSize=size=>size<1024?`${size} B`:size<1048576?`${(size/1024).toFixed(1)} KB`:`${(size/1048576).toFixed(2)} MB`;
+function documentsPage(){
+ const rows=S.resumes.map(r=>`<div class="resume-row"><div class="resume-info"><b>${esc(r.fileName||"Resume")}</b><span class="mut">${esc(r.roleCategory||"Uncategorized")} · ${resumeFileSize(Number(r.fileSize)||0)}</span></div><span class="b ${r.uploadStatus=="uploaded"?"s-offer":"s-assessment"}">${esc(r.uploadStatus||"Unknown")}</span><div class="resume-actions">${r.uploadStatus=="uploaded"?`<button class="btn" data-act="resume-download" data-id="${esc(r.resumeId)}" ${S.resumeBusy?"disabled":""}>Download</button>`:`<button class="btn" data-act="resume-retry" data-id="${esc(r.resumeId)}" ${S.resumeBusy?"disabled":""}>Retry upload</button>`}<button class="btn" data-act="resume-delete" data-id="${esc(r.resumeId)}" ${S.resumeBusy?"disabled":""}>Delete</button></div></div>`).join("");
+ return`<div class="wrap"><div class="row between"><div><h1 class="h1">Resumes</h1><p class="sub">Upload and manage your PDF or DOCX resumes.</p></div><button class="btn" data-act="resumes-refresh" ${S.resumesLoading||S.resumeBusy?"disabled":""}>${S.resumesLoading?"Loading…":"Refresh"}</button></div>
+ <section class="card pad" style="margin-top:18px"><h3 style="margin:0">Upload a resume</h3><form class="resume-form" data-resume-form><div class="f"><label for="resume-role">Role category *</label><input id="resume-role" data-in="resumeCategory" name="roleCategory" placeholder="e.g. Software Engineering" value="${esc(S.resumeCategory)}" required></div><div class="f"><label for="resume-file">Resume file *</label><input id="resume-file" name="resumeFile" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required></div><button class="btn p" ${S.resumeBusy?"disabled":""}>${S.resumeBusy?"Uploading…":S.resumeRetryId?"Retry upload":"Upload resume"}</button></form><p class="resume-help">${S.resumeRetryId?"Choose the original file to retry this pending upload. ":""}PDF or DOCX only · Maximum ${resumeFileSize(RESUME_MAX_SIZE_BYTES)}. Files upload directly to private storage.</p>${S.resumeError?`<div class="err" role="alert" style="margin-top:10px">${esc(S.resumeError)}</div>`:""}</section>
+ <section class="card pad" style="margin-top:16px"><div class="ch"><h3>Your resumes</h3><span class="notify-count">${S.resumes.length} file${S.resumes.length==1?"":"s"}</span></div>${S.resumesError?`<div class="empty"><b>Couldn’t load resumes</b><p>${esc(S.resumesError)}</p><button class="btn p" data-act="resumes-refresh">Try again</button></div>`:S.resumesLoading?skel():rows||emptyv("No resumes yet","Choose a PDF or DOCX file above to upload your first resume.")}</section></div>`
+}
 function metrics(){const A=S.apps,n=f=>A.filter(f).length,wk=n(a=>Date.now()-Date.parse(a.createdAt)<7*864e5);const M=[["Total Applications",A.length,"brief","var(--bs)","var(--blue)",wk+" added in the last 7 days"],["In Progress",n(a=>["applied","assessment","interview"].includes(a.status)),"clock","var(--as)","var(--amber)","Active pipeline"],["Interviews",n(a=>a.status=="interview"),"send","var(--ps)","var(--purple)","Scheduled or ongoing"],["Offers Received",n(a=>a.status=="offer"),"star","var(--gs)","var(--green)",n(a=>a.status=="rejected")+" rejected"]];
   return`<div class="grid4">${M.map(m=>`<div class="card m"><div class="ic" style="background:${m[3]};color:${m[4]}">${ic(m[2])}</div><div><div class="n">${m[1]}</div><div>${m[0]}</div><small>${m[5]}</small></div></div>`).join("")}</div>`}
 function pipeline(){const c=s=>S.apps.filter(a=>a.status==s).length;return`<div class="card pad"><div class="ch"><h3>Application Progress</h3></div><div class="pipe">${PIPE.map(s=>`<div><b>${c(s)}</b><span>${ST[s]}</span></div>`).join("")}</div><div class="out"><span>Outcomes:</span><span>${badge("rejected")} ${c("rejected")}</span><span>${badge("withdrawn")} ${c("withdrawn")}</span></div></div>`}
@@ -242,6 +268,64 @@ function taskForm(m){const a=m.data||{},e=m.err||{},busy=S.busy=="tsave";
   ${e.form?`<div class="err" role="alert" style="margin-bottom:10px">${esc(e.form)}</div>`:""}
   <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="closeov">Cancel</button><button class="btn p" ${busy?"disabled":""}>${busy?"Saving…":"Save Task"}</button></div></form></div>`}
 function confirmDelTask(k){const busy=S.busy=="tdel:"+k.id;return`<div class="ov" data-act="closeov"><div class="md" style="max-width:400px"><h3 style="margin-top:0">Delete task?</h3><p>“${esc(k.title)}” will be permanently removed.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeov">Cancel</button><button class="btn d" data-act="tdelok" data-id="${esc(k.id)}" ${busy?"disabled":""}>${busy?"Deleting…":"Delete"}</button></div></div></div>`}
+function confirmDeleteResume(r){return`<div class="ov" data-act="closeov"><div class="md" style="max-width:420px"><h3 style="margin-top:0">Delete resume?</h3><p>${esc(r.fileName)} and its stored file will be deleted.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeov">Cancel</button><button class="btn d" data-act="resume-delete-confirm" data-id="${esc(r.resumeId)}" ${S.resumeBusy?"disabled":""}>${S.resumeBusy?"Deleting…":"Delete resume"}</button></div></div></div>`}
+function resumeContentType(file){
+ const extension="."+String(file.name||"").split(".").pop().toLowerCase(),contentType=RESUME_CONTENT_TYPES[extension];
+ if(!contentType)return"";
+ if(file.type&&file.type!==contentType)return"";
+ return contentType
+}
+async function uploadResume(file,roleCategory,resumeId=null){
+ if(S.resumeBusy)return;
+ const contentType=resumeContentType(file);
+ if(!roleCategory.trim()){S.resumeError="Enter a role category.";render();return}
+ if(!contentType){S.resumeError="Choose a PDF or DOCX file with a matching file type.";render();return}
+ if(file.size<=0||file.size>RESUME_MAX_SIZE_BYTES){S.resumeError=`Choose a file between 1 byte and ${resumeFileSize(RESUME_MAX_SIZE_BYTES)}.`;render();return}
+ const existing=resumeId&&S.resumes.find(r=>r.resumeId==resumeId);
+ if(resumeId&&(!existing||existing.uploadStatus!="pending")){S.resumeError="This resume is no longer waiting for an upload. Refresh and try again.";render();return}
+ if(existing&&(existing.fileName!==file.name||existing.fileSize!==file.size||existing.contentType!==contentType)){S.resumeError="For a retry, choose the original filename, type, and file size.";render();return}
+ S.resumeBusy=true;S.resumeError="";render();
+ let uploadSucceeded=false;
+ try{
+  const result=resumeId?await svc.updateResume(resumeId,{roleCategory:roleCategory.trim(),fileName:file.name}):await svc.createResume({roleCategory:roleCategory.trim(),fileName:file.name,contentType,fileSize:file.size});
+  const id=result?.resume?.resumeId,uploadUrl=result?.uploadUrl;
+  if(!id||!uploadUrl)throw new ApiError("The Resumes API did not return a resume ID and upload URL.");
+  let url;
+  try{url=new URL(uploadUrl)}catch(_){throw new ApiError("The Resumes API returned an invalid upload URL.")}
+  if(url.protocol!=="https:")throw new ApiError("The upload URL must use HTTPS.");
+  let uploadResponse;
+  try{uploadResponse=await fetch(uploadUrl,{method:"PUT",headers:{"Content-Type":contentType},body:file})}
+  catch(e){throw new ApiError("Could not upload the file directly to S3. Check bucket CORS and try again.")}
+  if(!uploadResponse.ok)throw new ApiError(`S3 upload failed (${uploadResponse.status}). The resume remains pending; retry the upload.`)
+  uploadSucceeded=true;
+  const completion=await svc.completeResume(id);
+  if(completion?.resume?.uploadStatus!=="uploaded")throw new ApiError("The server did not confirm the resume upload.")
+  toast("Resume uploaded and verified.");
+ }catch(e){
+  S.resumeError=uploadSucceeded?`The file reached storage, but verification did not finish: ${e.message}`:e.message;
+  toast(uploadSucceeded?"Resume upload needs verification: "+e.message:"Resume upload failed: "+e.message,"e");
+ }finally{
+  S.resumeBusy=false;S.resumeRetryId=null;await refreshResumes();
+ }
+}
+async function deleteResume(id){
+ if(S.resumeBusy)return;
+ S.resumeBusy=true;render();
+ try{await svc.deleteResume(id);S.modal=null;toast("Resume deleted.");}
+ catch(e){S.resumeError="Couldn’t delete resume: "+e.message;toast(S.resumeError,"e")}
+ finally{S.resumeBusy=false;await refreshResumes()}
+}
+async function downloadResume(id){
+ const popup=window.open("about:blank","_blank");
+ if(!popup){toast("Allow pop-ups to download your resume.","e");return}
+ try{
+  const result=await svc.getResume(id);
+  if(!result?.downloadUrl)throw new ApiError("The Resumes API did not return a download URL.");
+  let url;try{url=new URL(result.downloadUrl)}catch(_){throw new ApiError("The Resumes API returned an invalid download URL.")}
+  if(url.protocol!=="https:")throw new ApiError("The download URL must use HTTPS.");
+  popup.location.href=url.href;
+ }catch(e){popup.close();toast("Couldn’t download resume: "+e.message,"e")}
+}
 function tasksPage(){
   const q=S.tq.toLowerCase();
   const list=S.tasks.filter(k=>(S.fts=="all"||(S.fts=="open")==!taskDone(k))&&(k.title+" "+k.description+" "+k.type+" "+appName(k.applicationId)).toLowerCase().includes(q)).sort((a,b)=>taskDone(a)-taskDone(b)||byDue(a,b));
@@ -264,31 +348,60 @@ function analytics(){
   ${A.length?`<div class="grid5">${M.map(m=>`<div class="card m"><div class="ic" style="background:${m[3]};color:${m[4]}">${ic(m[2])}</div><div><div class="n">${m[1]}</div><div>${m[0]}</div><small>${m[5]}</small></div></div>`).join("")}</div>
   <div class="card pad"><div class="ch"><h3>Applications by status</h3></div><div class="bars">${Object.entries(ST).map(([k,v])=>`<div class="bar"><span>${v}</span><i style="width:${Math.max(c(k)?4:0,Math.round(c(k)/mx*100))}%;background:var(${COLS[k]})"></i><b>${c(k)}</b></div>`).join("")}</div>
   <p class="mut" style="margin-bottom:0">Rates are estimated from each application’s current status; stage history isn’t stored, so applications rejected after an assessment or interview aren’t counted in those stages.</p></div>`:`<div class="card" style="margin-top:20px">${emptyv("No data yet","Add applications to see your conversion rates.")}</div>`}</div>`}
-const bell=()=>[...S.apps.filter(a=>active(a)&&a.deadline&&dl(a.deadline)<=3).map(a=>`<button data-act="open" data-id="${esc(a.id)}">${esc(a.companyName)} deadline ${dl(a.deadline)<0?"passed":"is near"} · ${fmt(a.deadline)}</button>`),...S.tasks.filter(k=>!taskDone(k)&&k.dueDate&&dl(k.dueDate)<=3).map(k=>`<button data-act="go" data-p="tasks">${esc(k.title)} ${dl(k.dueDate)<0?"is overdue":"is due soon"} · ${fmt(k.dueDate)}</button>`)];
-const NAV=[["dash","Dashboard","dash"],["apps","My Applications","brief"],["pipe","Pipeline","kan"],["tasks","Tasks","tasks"],["cal","Calendar","cal"],["ana","Analytics","chart"],["notes","Notes","note"],["docs","Documents","note"]];
-const TITLE={dash:"Dashboard",apps:"My Applications",pipe:"Application Pipeline",tasks:"Tasks",cal:"Calendar & Deadlines",ana:"Analytics",notes:"Notes",docs:"Documents",set:"Settings",help:"Help & Support"};
+function scheduledEvents(){
+ const events=[];
+ for(const a of S.apps){const date=dateKey(a.deadline);if(active(a)&&date)events.push({id:`app:${a.id}:${date}`,date,kind:"deadline",title:`${a.companyName} application deadline`,subtitle:a.role,description:a.notes||"",applicationId:a.id})}
+ for(const k of S.tasks){const date=dateKey(k.dueDate);if(taskDone(k)||!date)continue;const type=String(k.type||"").toLowerCase(),kind=type=="interview"?"interview":type=="assessment"?"assessment":type=="deadline"?"deadline":"task";events.push({id:`task:${k.id}:${date}`,date,kind,title:k.title,subtitle:[k.type||"Task",appName(k.applicationId)].filter(Boolean).join(" · "),description:k.description||"",taskId:k.id,applicationId:k.applicationId||""})}
+ return events.sort((a,b)=>a.date.localeCompare(b.date)||a.title.localeCompare(b.title))
+}
+const notificationItems=()=>scheduledEvents().map(event=>{const days=dl(event.date),state=days<0?`Overdue by ${-days} day${days==-1?"":"s"}`:days==0?"Due today":`Due in ${days} day${days==1?"":"s"}`;const label=event.kind=="deadline"?"Deadline":event.kind=="interview"?"Interview":event.kind=="assessment"?"Assessment":"Task";return{...event,state,label,read:S.readNotifications.has(event.id)}});
+const unreadCount=()=>notificationItems().filter(n=>!n.read).length;
+function calendarPage(){
+ const month=S.calendarMonth,year=month.getFullYear(),monthIndex=month.getMonth(),firstWeekday=new Date(year,monthIndex,1).getDay(),daysInMonth=new Date(year,monthIndex+1,0).getDate(),cellCount=Math.ceil((firstWeekday+daysInMonth)/7)*7,events=scheduledEvents(),byDate=new Map();
+ for(const event of events){if(!byDate.has(event.date))byDate.set(event.date,[]);byDate.get(event.date).push(event)}
+ const today=dateKey(new Date()),selected=byDate.get(S.calendarDate)||[],picked=events.find(event=>event.id==S.calendarEvent);
+ const cells=Array.from({length:cellCount},(_,i)=>{const dayNumber=i-firstWeekday+1;if(dayNumber<1||dayNumber>daysInMonth)return`<div class="cal-day outside" aria-hidden="true"></div>`;const date=`${year}-${String(monthIndex+1).padStart(2,"0")}-${String(dayNumber).padStart(2,"0")}`,items=byDate.get(date)||[],overdue=items.some(event=>event.kind=="deadline"&&dl(event.date)<0);return`<button class="cal-day ${date==today?"today":""} ${date==S.calendarDate?"selected":""} ${overdue?"overdue":""}" data-act="calendar-date" data-date="${date}" aria-label="${date}${items.length?`, ${items.length} event${items.length==1?"":"s"}`:""}" aria-pressed="${date==S.calendarDate}"><span class="cal-daynum">${dayNumber}</span>${items.length?`<span class="cal-dots" aria-hidden="true">${items.slice(0,4).map(event=>`<i class="cal-dot ${event.kind}"></i>`).join("")}</span>`:""}</button>`}).join("");
+ const dayList=selected.length?`<div class="calendar-day-list">${selected.map(event=>`<button class="calendar-event ${event.kind} ${picked?.id==event.id?"selected":""}" data-act="calendar-event" data-id="${esc(event.id)}"><b>${esc(event.title)}</b><span class="mut">${esc(event.subtitle||"")} · ${fmt(event.date)}</span>${event.kind=="deadline"&&dl(event.date)<0?`<span class="chip u-over">${-dl(event.date)}d overdue</span>`:""}</button>`).join("")}</div>`:emptyv("Nothing scheduled",S.calendarDate==today?"No events are scheduled for today.":"No events are scheduled for this date.");
+ const detail=picked&&picked.date==S.calendarDate?`<div class="calendar-detail"><b>${esc(picked.title)}</b><p class="mut">${esc(picked.subtitle||"")} · ${fmt(picked.date)}</p>${picked.description?`<p>${esc(picked.description)}</p>`:""}${picked.kind=="deadline"&&dl(picked.date)<0?`<span class="chip u-over">${-dl(picked.date)}d overdue</span>`:""}<div style="margin-top:10px"><button class="btn p" data-act="open-calendar-event" data-id="${esc(picked.id)}">${picked.taskId?"Open task":"View application"}</button></div></div>`:"";
+ const errors=[S.error?`Applications: ${esc(S.error)}`:"",S.tasksError?`Tasks: ${esc(S.tasksError)}`:""].filter(Boolean);
+ return`<div class="wrap"><div class="row between"><div><h1 class="h1">Calendar</h1><p class="sub">Application deadlines and scheduled tasks from your tracker.</p></div><div class="row"><button class="btn" data-act="calendar-today">Today</button><button class="btn" data-act="calendar-prev" aria-label="Previous month">‹</button><button class="btn" data-act="calendar-next" aria-label="Next month">›</button></div></div>${S.loading?`<div style="margin-top:18px">${skel()}</div>`:errors.length?`<div class="warn" role="status" style="margin-top:16px">Some events could not be loaded: ${errors.join(" · ")} <button class="btn" data-act="retry">Try again</button></div>`:""}
+ <div class="calendar-layout"><section class="card calendar-card" aria-label="Monthly calendar"><div class="ch"><h2 class="h1" style="font-size:18px">${month.toLocaleDateString("en-US",{month:"long",year:"numeric"})}</h2><span class="notify-count">${events.length} scheduled event${events.length==1?"":"s"}</span></div><div class="calendar-grid">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day=>`<div class="calendar-weekday">${day}</div>`).join("")}${cells}</div><div class="calendar-legend"><span><i class="cal-dot deadline"></i>Application deadline</span><span><i class="cal-dot task"></i>Task</span><span><i class="cal-dot interview"></i>Interview</span><span><i class="cal-dot assessment"></i>Assessment</span></div></section>
+ <section class="card pad"><div class="ch"><h3>${fmt(S.calendarDate)}</h3></div>${dayList}${detail}</section></div></div>`
+}
+function notificationsPage(){
+ const all=notificationItems(),unread=all.filter(n=>!n.read).length,filtered=all.filter(n=>S.notificationFilter=="all"||S.notificationFilter=="unread"&&!n.read||S.notificationFilter=="deadlines"&&n.kind=="deadline"||S.notificationFilter=="tasks"&&n.kind!="deadline");
+ const filters=[["all","All"],["unread","Unread"],["deadlines","Deadlines"],["tasks","Tasks"]];
+ const errors=[S.error?`Applications: ${esc(S.error)}`:"",S.tasksError?`Tasks: ${esc(S.tasksError)}`:""].filter(Boolean);
+ const entries=filtered.map(n=>`<article class="notification ${n.read?"":"unread"}"><button class="notification-main" data-act="notification-open" data-id="${esc(n.id)}"><b>${esc(n.label)}: ${esc(n.title)}</b><p>${esc(n.subtitle||"")} · ${fmt(n.date)} · ${n.state}</p></button><div class="notification-actions"><button class="ib" data-act="notification-read" data-id="${esc(n.id)}" aria-label="${n.read?"Mark as unread":"Mark as read"}" title="${n.read?"Mark as unread":"Mark as read"}">${ic(n.read?"check":"bell")}</button></div></article>`).join("");
+ return`<div class="wrap"><div class="row between"><div><h1 class="h1">Notifications</h1><p class="sub">Deadlines and scheduled tasks based on your saved records.</p></div><button class="btn" data-act="notifications-read-all" ${unread?"":"disabled"}>Mark all as read</button></div><div class="notify-filters" role="group" aria-label="Filter notifications">${filters.map(([key,label])=>`<button class="btn ${S.notificationFilter==key?"on":""}" data-act="notification-filter" data-filter="${key}" aria-pressed="${S.notificationFilter==key}">${label}${key=="unread"?` (${unread})`:""}</button>`).join("")}</div>${errors.length?`<div class="warn" role="status">Some notifications could not be loaded: ${errors.join(" · ")} <button class="btn" data-act="retry">Try again</button></div>`:""}${S.loading?skel():filtered.length?`<div class="notify-list">${entries}</div>`:all.length?emptyv("No matching notifications","Try another filter to see scheduled items."):errors.length?emptyv("Notifications unavailable","Retry after the application and task data finish loading."):emptyv("You’re all caught up","Upcoming deadlines and tasks will appear here when they exist.")}</div>`
+}
+function bell(){return notificationItems().filter(n=>!n.read).slice(0,5).map(n=>`<button data-act="notification-open" data-id="${esc(n.id)}">${esc(n.label)}: ${esc(n.title)} · ${fmt(n.date)}</button>`)}
+const NAV=[["dash","Dashboard","dash"],["apps","My Applications","brief"],["pipe","Pipeline","kan"],["tasks","Tasks","tasks"],["cal","Calendar","cal"],["notify","Notifications","bell"],["docs","Documents","note"]];
+const TITLE={dash:"Dashboard",apps:"My Applications",pipe:"Application Pipeline",tasks:"Tasks",cal:"Calendar",notify:"Notifications",ana:"Analytics",notes:"Notes",docs:"Documents",set:"Settings",help:"Help & Support"};
 function pageHtml(){const w=h=>`<div class="wrap">${h}</div>`;
   switch(S.page){
    case"dash":return S.loading?w(skel()):S.error?w(errv()):dashboard();
    case"apps":return applications();
    case"pipe":return applications(true);
    case"tasks":return tasksPage();
+   case"cal":return calendarPage();
+   case"notify":return notificationsPage();
    case"ana":return S.loading?w(skel()):S.error?w(errv()):analytics();
    case"set":return settings();
-   case"docs":return soon("Documents","Resume and document uploads are a placeholder for now. They will use secure, backend-generated upload links; nothing is uploaded from this screen.");
+   case"docs":return documentsPage();
    default:return soon(TITLE[S.page])}}
 function render(){if(S.route!="app"){$("#app").innerHTML=pub();return}
   const fx=document.activeElement,fk=fx?.dataset?.in,pos=fx?.selectionStart;
   const page=pageHtml();
   const cur=S.open&&S.apps.find(a=>a.id==S.open);
-  const notes=bell(),unread=notes.length;
- $("#app").innerHTML=`<aside class="${S.nav?"open":""} ${S.col?"mini":""}"><div class="logo"><b>${ic("check")}</b>InternTrack</div>${NAV.map(n=>`<button class="nav ${S.page==n[0]?"on":""}" data-act="go" data-p="${n[0]}" title="${n[1]}">${ic(n[2])}${n[1]}</button>`).join("")}<div class="sp"></div><button class="nav ${S.page=="set"?"on":""}" data-act="go" data-p="set">${ic("set")}Settings</button><button class="nav ${S.page=="help"?"on":""}" data-act="go" data-p="help">${ic("help")}Help &amp; Support</button><div class="prof"><div class="av">DU</div><div style="flex:1"><b>Dev user</b><div class="mut">Prototype sign-in</div></div></div></aside><div class="back" data-act="navx"></div>
+  const notes=bell(),unread=unreadCount();
+ $("#app").innerHTML=`<aside class="${S.nav?"open":""} ${S.col?"mini":""}"><div class="logo"><b>${ic("check")}</b>InternTrack</div>${NAV.map(n=>`<button class="nav ${S.page==n[0]?"on":""}" data-act="go" data-p="${n[0]}" title="${n[1]}">${ic(n[2])}${n[1]}${n[0]=="notify"&&unread?`<span class="notify-badge">${unread>99?"99+":unread}</span>`:""}</button>`).join("")}<div class="sp"></div><div class="prof"><div class="av">DU</div><div style="flex:1"><b>Dev user</b><div class="mut">Prototype sign-in</div></div></div></aside><div class="back" data-act="navx"></div>
  <main class="${S.col?"mini":""}"><header><button class="ib" id="menu" data-act="nav">${ic("menu")}</button><button class="ib cb" data-act="collapse" title="Collapse sidebar">${ic("menu")}</button><div><div class="crumb">InternTrack / ${TITLE[S.page]}</div><div class="ttl">${TITLE[S.page]}</div></div>
  <div class="srch">${ic("search")}<input data-in="gq" placeholder="Search companies, roles..." value="${esc(S.gq)}"></div>${themeToggle()}
- <div style="position:relative"><button class="ib" data-act="menu" data-m="bell" title="Notifications">${ic("bell")}${unread?'<span class="dot"></span>':""}</button>${S.menu=="bell"?`<div class="pop"><div><b>Notifications</b></div>${notes.join("")||"<div class='mut'>You’re all caught up.</div>"}</div>`:""}</div>
+ <div style="position:relative"><button class="ib" data-act="menu" data-m="bell" title="Notifications" aria-label="Notifications${unread?`, ${unread} unread`:""}">${ic("bell")}${unread?'<span class="dot"></span>':""}</button>${S.menu=="bell"?`<div class="pop"><div><b>Notifications</b></div>${notes.join("")||"<div class='mut'>You’re all caught up.</div>"}<button data-act="go" data-p="notify">View all notifications</button></div>`:""}</div>
  <button class="btn p hide-s" data-act="add">${ic("plus")} Add Application</button>
  <div style="position:relative"><button class="ib" data-act="menu" data-m="user" aria-label="Open account menu"><span class="av">DU</span></button>${S.menu=="user"?`<div class="pop" style="width:200px"><button data-act="go" data-p="set">Settings</button><button data-act="route" data-r="landing">Sign out</button><button data-act="go" data-p="help">Help &amp; Support</button></div>`:""}</div></header>${page}</main>
- ${cur&&!S.modal?detail(cur):""}${S.modal?.type=="form"?form(S.modal):""}${S.modal?.type=="del"?confirmDel(S.modal.data):""}${S.modal?.type=="task"?taskForm(S.modal):""}${S.modal?.type=="tdel"?confirmDelTask(S.modal.data):""}${S.busy||S.loading?'<div class="prog" role="progressbar" aria-label="Loading"></div>':""}`;
+ ${cur&&!S.modal?detail(cur):""}${S.modal?.type=="form"?form(S.modal):""}${S.modal?.type=="del"?confirmDel(S.modal.data):""}${S.modal?.type=="task"?taskForm(S.modal):""}${S.modal?.type=="tdel"?confirmDelTask(S.modal.data):""}${S.modal?.type=="resume-del"?confirmDeleteResume(S.modal.data):""}${S.busy||S.resumeBusy||S.loading?'<div class="prog" role="progressbar" aria-label="Loading"></div>':""}`;
  if(fk){const el=document.querySelector(`[data-in="${fk}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}}
 }
 // ---------- public site, auth, onboarding ----------
@@ -345,6 +458,13 @@ async function saveTask(id,form){if(S.busy)return;
   const old=id?S.tasks.find(k=>k.id==id):null;
   const r=await mutate("tsave",()=>id?svc.updateTask(id,{...old,...d}):svc.createTask({...d,status:d.status||TASK_STATUS.open}),{ok:"Task saved",fail:"Save failed",which:"tasks",done:()=>{S.modal=null}});
   if(!r.ok&&S.modal){const fe={};if(r.details&&typeof r.details=="object")for(const[k,v]of Object.entries(r.details))if(typeof v=="string")fe[k]=v;S.modal={...S.modal,err:{...fe,form:r.error}};render()}}
+function openScheduledEvent(eventId){
+ const event=scheduledEvents().find(item=>item.id==eventId);
+ if(!event){toast("This scheduled item is no longer available. Refresh the data and try again.","e");return}
+ S.readNotifications.add(event.id);persistNotificationReads();S.menu=null;S.nav=false;
+ if(event.taskId){const task=S.tasks.find(item=>item.id==event.taskId);if(!task){toast("The related task could not be found.","e");return}S.page="tasks";S.open=null;S.modal={type:"task",data:task}}
+ else{S.open=event.applicationId;S.modal=null}
+}
 document.addEventListener("click",async e=>{
   const t=e.target.closest("[data-act]");if(!t){if(S.menu){S.menu=null;render()}return}
   const act=t.dataset.act,id=t.dataset.id;
@@ -355,8 +475,21 @@ document.addEventListener("click",async e=>{
   if(act=="go"){S.page=t.dataset.p;S.nav=false;S.menu=null;S.open=null;S.pg=1}
   else if(act=="nav")S.nav=!S.nav;else if(act=="collapse")S.col=!S.col;else if(act=="route"){S.route=t.dataset.r;scrollTo(0,0)}else if(act=="demo"){S.route="app";S.page="dash"}else if(act=="scroll"){document.getElementById(t.dataset.s)?.scrollIntoView({behavior:"smooth"});return}else if(act=="ob"){const w=t.dataset.w;if(w=="back")S.obs--;else if(w=="next")S.obs++;else if(w=="skip"){S.route="app";S.page="dash"}else if(w=="add"||w=="empty"){S.obw=w;S.obs=3}else if(w=="fin"){S.route="app";S.page="dash";if(S.obw=="add")S.modal={type:"form"}}}else if(act=="navx")S.nav=false;
   else if(act=="menu")S.menu=S.menu==t.dataset.m?null:t.dataset.m;
+  else if(act=="calendar-prev"||act=="calendar-next"){S.calendarMonth=new Date(S.calendarMonth.getFullYear(),S.calendarMonth.getMonth()+(act=="calendar-prev"?-1:1),1);S.calendarDate=dateKey(S.calendarMonth);S.calendarEvent=null}
+  else if(act=="calendar-today"){const today=new Date();S.calendarMonth=new Date(today.getFullYear(),today.getMonth(),1);S.calendarDate=dateKey(today);S.calendarEvent=null}
+  else if(act=="calendar-date"){S.calendarDate=t.dataset.date;S.calendarEvent=null}
+  else if(act=="calendar-event")S.calendarEvent=id
+  else if(act=="open-calendar-event"||act=="notification-open")openScheduledEvent(id)
+  else if(act=="notification-filter")S.notificationFilter=t.dataset.filter
+  else if(act=="notification-read"){if(S.readNotifications.has(id))S.readNotifications.delete(id);else S.readNotifications.add(id);persistNotificationReads()}
+  else if(act=="notifications-read-all"){for(const item of scheduledEvents())S.readNotifications.add(item.id);persistNotificationReads()}
   else if(act=="theme"){Theme.toggle();S.menu=null}
   else if(act=="theme-choice")Theme.set(t.dataset.themeChoice);
+  else if(act=="resumes-refresh")return refreshResumes();
+  else if(act=="resume-retry"){const resume=S.resumes.find(r=>r.resumeId==id);if(!resume)return;S.resumeRetryId=id;S.resumeCategory=resume.roleCategory||""}
+  else if(act=="resume-download"){await downloadResume(id);return}
+  else if(act=="resume-delete"){const resume=S.resumes.find(r=>r.resumeId==id);if(resume)S.modal={type:"resume-del",data:resume}}
+  else if(act=="resume-delete-confirm"){await deleteResume(id);return}
   else if(act=="add")S.modal={type:"form"};
   else if(act=="edit")S.modal={type:"form",data:S.apps.find(a=>a.id==id)};
   else if(act=="del")S.modal={type:"del",data:S.apps.find(a=>a.id==id)};
@@ -373,12 +506,13 @@ document.addEventListener("click",async e=>{
   else if(act=="retry")return load();
   enter()});
 document.addEventListener("change",async e=>{const t=e.target;
+  if(t.id=="resume-file")return;
   if(t.dataset.act=="task"){const k=S.tasks.find(x=>x.id==t.dataset.id);if(!k)return;const done=t.checked;
    await mutate("task:"+k.id,()=>svc.updateTask(k.id,{...k,status:done?TASK_STATUS.done:TASK_STATUS.open}),{ok:done?"Task completed":"Task reopened",fail:"Couldn’t update task",which:"tasks"})}
   else if(t.dataset.act=="status"){const a=S.apps.find(x=>x.id==t.dataset.id);if(!a)return;const v=t.value;
    await mutate("status:"+a.id,()=>svc.updateApplication(a.id,{...a,status:v,dateApplied:a.dateApplied||(v!="saved"?day(0):"")}),{ok:"Status updated",fail:"Couldn’t update status",which:"apps"})}});
 document.addEventListener("input",e=>{const k=e.target.dataset.in;if(!k)return;S[k]=e.target.value;if(k=="gq"){S.q=e.target.value;if(S.page!="apps"&&S.page!="dash")S.page="apps"}S.pg=1;render()});
-document.addEventListener("submit",e=>{e.preventDefault();const f=e.target,k=f.dataset.auth;if(k)auth(k,f);else if("tform" in f.dataset)saveTask(f.dataset.tform,f);else save(f.dataset.form,f)});
+document.addEventListener("submit",e=>{e.preventDefault();const f=e.target,k=f.dataset.auth;if(k)auth(k,f);else if("resumeForm" in f.dataset){const file=f.elements.resumeFile.files?.[0];if(!file){S.resumeError="Choose a PDF or DOCX file.";render();return}const retryId=S.resumeRetryId;S.resumeRetryId=null;uploadResume(file,f.elements.roleCategory.value,retryId)}else if("tform" in f.dataset)saveTask(f.dataset.tform,f);else save(f.dataset.form,f)});
 let dragId=null;
 document.addEventListener("dragstart",e=>{dragId=e.target.closest?.("[data-drag]")?.dataset.drag});
 document.addEventListener("dragover",e=>{const c=e.target.closest?.("[data-drop]");if(c){e.preventDefault();c.classList.add("over")}});
